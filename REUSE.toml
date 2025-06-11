@@ -1,0 +1,10 @@
+version = 1
+SPDX-PackageName = "gateplane-vault-plugins"
+SPDX-PackageSupplier = "john.torakis+gateplane@gmail.com"
+SPDX-PackageDownloadLocation = "https://github.com/gateplane-io/vault-plugins"
+
+[[annotations]]
+path = "internal/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Ioannis Torakis"
+SPDX-License-Identifier = "Elastic-2.0"
