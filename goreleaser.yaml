@@ -1,0 +1,82 @@
+version: 2
+
+# .Env.VERSION_{id}: parsed from helper script
+# eval "$(scripts/plugin_versions.sh)"
+
+git:
+  tag_sort: -version:creatordate
+
+builds:
+    # This is not a build to be released
+    # It is deliberately built for testing
+    # So it is skipped
+  - skip: true
+    id: mock
+    main: ./cmd/mock/main.go
+    binary: gateplane-mock
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags: [ '-mod=vendor', '-trimpath' ]
+
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Env.VERSION_mock }}
+    mod_timestamp: '{{.CommitTimestamp}}'
+
+  - id: policy-gate
+    main: ./cmd/policy-gate/main.go
+    binary: gateplane-policy-gate
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags: [ '-mod=vendor', '-trimpath' ]
+
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Env.VERSION_policy_gate }}
+    mod_timestamp: '{{.CommitTimestamp}}'
+
+archives:
+  - formats: ['binary']
+    name_template: >-
+      {{ .Binary }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: '{{ time "2006.1.2" }}-snapshot'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+# SLACK_WEBHOOK EnvVar must be populated
+announce:
+  slack:
+    enabled: true
+
+    message_template: |
+      The `{{.Tag}}` is out!
+      ----
+      Plugin versions:
+      GatePlane Policy Gate: `{{ .Env.VERSION_policy_gate }}`
+      ----
