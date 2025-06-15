@@ -1,4 +1,5 @@
 repos:
+  # General Hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -7,6 +8,8 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
 
+
+  # Golang
   - repo: https://github.com/TekWizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
@@ -16,6 +19,8 @@ repos:
       # - id: golangci-lint
       # - id: go-unit-tests
 
+
+  # Licensing
   - repo: https://github.com/fsfe/reuse-tool
     rev: v5.0.2
     hooks:
@@ -36,3 +41,25 @@ repos:
           - "string-c"
           - --template
           - elastic_v2
+
+
+  # Terraform
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.99.4
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_docs
+
+
+  # Python
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.11.13
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args:
+        - "--fix"
+        - "--show-fixes"
+       # Run the formatter.
+      - id: ruff-format
