@@ -114,6 +114,36 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 	requiredApprovals := config.RequiredApprovals
 	if accessRequest.Status == Pending && requestIsApproved(accessRequest, requiredApprovals) {
 		accessRequest.Status = Approved
+		err = accessRequest.createGrantCode()
+		err2 := b.storeGrantCodeMap(ctx, req, &accessRequest)
+		err3 := b.storeRequest(ctx, req, &accessRequest)
+		if err != nil {
+			b.Logger().Error("[-] GrantCode could not be created",
+				"EntityID", entityID,
+				"RequestID", requestID,
+				"error", err,
+			)
+			return nil, err
+		} else if err2 != nil {
+			b.Logger().Error("[-] GrantCode could not be mapped to AccessRequest",
+				"EntityID", entityID,
+				"RequestID", requestID,
+				"error", err2,
+			)
+			return nil, err2
+		} else if err3 != nil {
+			b.Logger().Error("[-] Could not store Approved AccessRequest",
+				"EntityID", entityID,
+				"RequestID", requestID,
+				"error", err3,
+			)
+			return nil, err3
+		} else {
+			b.Logger().Info("[+] GrantCode created",
+				"EntityID", entityID,
+				"RequestID", requestID,
+			)
+		}
 	}
 	return &accessRequest, nil
 }

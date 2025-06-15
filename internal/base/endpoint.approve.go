@@ -80,29 +80,6 @@ func (b *BaseBackend) handleApprove(ctx context.Context, req *logical.Request, d
 	accessRequest.Approvals[entityID] = approval
 	approved := requestIsApproved(*accessRequest, config.RequiredApprovals)
 
-	if approved {
-		err = accessRequest.createGrantCode()
-		err2 := b.storeGrantCodeMap(ctx, req, accessRequest)
-		if err != nil {
-			b.Logger().Error("[-] GrantCode could not be created",
-				"EntityID", entityID,
-				"RequestID", requestID,
-				"error", err,
-			)
-		} else if err2 != nil {
-			b.Logger().Error("[-] GrantCode could not be mapped to AccessRequest",
-				"EntityID", entityID,
-				"RequestID", requestID,
-				"error", err,
-			)
-		} else {
-			b.Logger().Info("[+] GrantCode created",
-				"EntityID", entityID,
-				"RequestID", requestID,
-			)
-		}
-	}
-
 	err = b.storeRequest(ctx, req, accessRequest)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
