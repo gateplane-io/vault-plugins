@@ -29,7 +29,11 @@ jobs:
         with:
           go-version: "1.24"
       - name: Get Release Versions from Git Tags
-        run: scripts/plugin_versions.sh | grep -v '#' | sed 's/export //g' >> "$GITHUB_ENV"
+        run: |
+          # Sets EnvVars like VERSION_policy_gate (used in GoReleaser config)
+          scripts/plugin_versions.sh | grep -v '#' | sed 's/export //g' >> "$GITHUB_ENV"
+          # Sets GoReleaser Tags EnvVars, to diff only between SemVer releases
+          scripts/goreleaser_semver_tags.sh | grep -v '#' | sed 's/export //g' >> "$GITHUB_ENV"
 
       - name: Run GoReleaser
         id: goreleaser

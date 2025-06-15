@@ -14,6 +14,6 @@ for PLUGIN in $plugins; do
 	fi
 	tag="v$plugin_version-base.$base_version"
 	echo "# ${PLUGIN} - ${PLUGIN}/${plugin_version}"
-	echo "export VERSION_${PLUGIN/-/_}=$tag"
+	echo "export VERSION_${PLUGIN/-/_}=$tag" | tee /dev/stderr
 
 done;
