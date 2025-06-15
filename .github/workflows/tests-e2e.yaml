@@ -1,0 +1,73 @@
+name: Test Plugins
+
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  test-e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get Release Versions from Git Tags
+        run: |
+          # Sets EnvVars like VERSION_policy_gate (used in GoReleaser config)
+          scripts/plugin_versions.sh | grep -v '#' | sed 's/export //g' >> "$GITHUB_ENV"
+
+      - name: Run GoReleaser
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
+        with:
+          version: '~> v2'
+
+      - name: Build the plugins
+        run: |
+          make build-plugin
+        env:
+          # Generates the 'mock' plugin
+          RELEASE: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # 5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Test Requirements
+        run: pip install -r test/requirements-dev.txt
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # 3.1.2
+        with:
+          terraform_version: 1.12.2
+
+      - name: Setup Vault/OpenBao and register/mount plugins
+        run: |
+          make load-infra
+          make export-resources
+        env:
+          # To register the Plugins to Vault/OpenBao
+          TF_VAR_plugin_version_mock: ${{ env.VERSION_mock }}
+          TF_VAR_plugin_version_policy_gate: ${{ env.VERSION_policy_gate }}
+
+      - name: Setup Vault/OpenBao and register/mount plugins
+        run: |
+          make test-infra || true  # Continue even if this step fails
+        env:
+          # To access all Terraform Modules in temporary-private repos
+          GITHUB_TOKEN: ${{ secret.TF_E2E_PAT }}
+
+      - name: Show Docker logs
+        run: |
+          docker compose -f test/compose.yaml logs || true
+
+      - name: Unload infrastructure
+        run: |
+          make unload-infra

@@ -10,7 +10,7 @@ builds:
     # This is not a build to be released
     # It is deliberately built for testing
     # So it is skipped
-  - skip: true
+  - skip: "{{ .Env.RELEASE }}"
     id: mock
     main: ./cmd/mock/main.go
     binary: gateplane-mock
