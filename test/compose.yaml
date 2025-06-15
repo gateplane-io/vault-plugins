@@ -1,0 +1,26 @@
+services:
+  vault:
+    # image: hashicorp/vault:latest
+    image: openbao/openbao:latest
+    container_name: vault-inst-plugin-test
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+      - VAULT_DEV_MOUNT_HELPER=true
+      - VAULT_ADDR=http://127.0.0.1:8200
+      - VAULT_TOKEN=root
+    ports:
+      - "8200:8200"  # Exposing the Vault port (default is 8200)
+    volumes:
+      - ../dist:/tmp/dist
+    cap_add:
+      - IPC_LOCK  # Required for Vault to lock memory and prevent swapping
+    restart: unless-stopped
+
+    command: sh -c "ls -lR /tmp/dist &&
+      mkdir -p /etc/vault/plugins && rm -rf /etc/vault/plugins/* &&
+      cp /tmp/dist/*linux_amd64_v1/* /etc/vault/plugins/ &&
+      chown -R 100:1000 /etc/vault/plugins &&
+      chmod -R 775 /etc/vault/plugins &&
+      ls -l /etc/vault/plugins &&
+      vault server -log-level=trace -dev -dev-plugin-dir=/etc/vault/plugins"

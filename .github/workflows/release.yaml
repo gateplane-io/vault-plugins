@@ -45,6 +45,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # To announce the new release
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          # To not release the 'mock' plugin
+          RELEASE: true
 
       - name: Generate binary hashes
         id: binary
