@@ -65,9 +65,17 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
       - '^test:'
       - '^chore:'
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Others
+      order: 999
 
 # SLACK_WEBHOOK EnvVar must be populated
 announce:
@@ -75,8 +83,11 @@ announce:
     enabled: true
 
     message_template: |
-      The `{{.Tag}}` is out!
+      # The `{{.Tag}}` is out!
+      {{ .ReleaseURL }}
       ----
-      Plugin versions:
+      ## Plugin versions:
       GatePlane Policy Gate: `{{ .Env.VERSION_policy_gate }}`
       ----
+      # Release Notes
+      {{ .ReleaseNotes }}
