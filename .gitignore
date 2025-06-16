@@ -24,3 +24,6 @@ go.work.sum
 # env file
 .env
 dist/
+
+# ---
+test/terraform-output.json
