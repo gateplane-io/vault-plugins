@@ -1,0 +1,70 @@
+name: Test Plugins
+
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  test-e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set SemVer Plugin Versions
+        run: |
+          echo 'VERSION_policy_gate=v0.0.0-snap' >> "$GITHUB_ENV"
+          echo 'VERSION_mock=v0.0.0-snap' >> "$GITHUB_ENV"
+
+      - name: Run GoReleaser
+        id: goreleaser
+        uses: goreleaser/goreleaser-action@9c156ee8a17a598857849441385a2041ef570552 # v6.3.0
+        with:
+          version: '~> v2'
+          args: build --clean --single-target --snapshot
+        env:
+          # Generates the 'mock' plugin
+          RELEASE: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # 5.6.0
+        with:
+          python-version: '3.11'
+
+      - name: Install Test Requirements
+        run: pip install -r test/requirements-dev.txt
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # 3.1.2
+        with:
+          terraform_version: 1.12.2
+
+      - name: Deploy Vault/OpenBao
+        run: |
+          # Runs the Docker Compose
+          make load-infra
+          sleep 5
+
+      - name: Register/Mount plugins
+        run: |
+          make export-resources
+        env:
+          # To rgister plugin versions to Vault/OpenBao
+          TF_VAR_plugin_version_mock: ${{ env.VERSION_mock }}
+          TF_VAR_plugin_version_policy_gate: ${{ env.VERSION_policy_gate }}
+
+      - name: "E2E Tests (finally!)"
+        run: |
+          make test-infra
+
+      - name: Show Docker logs
+        run: |
+          docker compose -f test/compose.yaml logs
+        if: ${{ always() }}
