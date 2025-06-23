@@ -15,7 +15,7 @@
 # https://goreleaser.com/cookbooks/set-a-custom-git-tag/
 
 release_tags=$(git for-each-ref refs/tags/*-release \
-	--sort=-taggerdate \
+	--sort=-refname \
 	--format='%(refname)' \
 	--count=2 \
 | cut -d '/' -f 3 \
