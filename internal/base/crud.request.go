@@ -43,7 +43,7 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 			"EntityID", entityID,
 			"RequestID", requestID,
 		)
-		return nil, fmt.Errorf("Request Not Found")
+		return nil, nil
 	}
 
 	var accessRequest AccessRequest

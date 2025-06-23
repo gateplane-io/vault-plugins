@@ -114,6 +114,9 @@ func (b *BaseBackend) handleRequestRead(ctx context.Context, req *logical.Reques
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
+	if accessRequest == nil {
+		return &logical.Response{Data: map[string]interface{}{}}, nil
+	}
 
 	data := map[string]interface{}{
 		"iat":        accessRequest.CreatedAt,
