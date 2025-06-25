@@ -82,8 +82,8 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^test:'
-      - '^chore:'
+      - '^test(\([[:word:]]+\))?:'
+      - '^chore(\([[:word:]]+\))?:'
   groups:
     - title: Features
       regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
