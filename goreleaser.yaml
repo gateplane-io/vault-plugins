@@ -110,32 +110,29 @@ release:
 announce:
   slack:
     enabled: true
-
+    message_template: ""
     blocks:
       - type: header
         text:
           type: plain_text
-          text: "The {{ .Tag }} is out \U0001F680⭐"
+          text: "The {{ .Tag }} is out 🚀⭐"
           emoji: true
       - type: section
         text:
           type: mrkdwn
-          text: '{{ .ReleaseURL }}'
+          text: "{{ .ReleaseURL }}"
       - type: divider
-      - type: section
-        text:
-          type: mrkdwn
-          text: |-
-            *Plugin versions:*
-             Policy Gate: `{{ .Env.VERSION_policy_gate }}`
-             Okta Group Gate: `{{ .Env.VERSION_okta_group_gate }}`
-      - type: divider
-      - type: header
-        text:
-          type: plain_text
-          text: "Release Notes \U0001F4DD"
-          emoji: true
-      - type: section
-        text:
-          type: mrkdwn
-          text: '{{ .ReleaseNotes }}'
+      # - type: section
+      #   text:
+      #     type: mrkdwn
+      #     text: '{{ printf "*Plugin versions:*\n Policy Gate: `%s`\n Okta Group Gate: `%s`" .Env.VERSION_policy_gate .Env.VERSION_okta_group_gate | mdv2escape }}'
+      # - type: divider
+      # - type: header
+      #   text:
+      #     type: plain_text
+      #     text: "Release Notes 📝"
+      #     emoji: true
+      # - type: section
+      #   text:
+      #     type: mrkdwn
+      #     text: '{{ printf "%s" .ReleaseNotes | mdv2escape }}'
