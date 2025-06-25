@@ -1,7 +1,14 @@
 #!/usr/bin/make
 
+VAULT_CONTAINER="vault-inst-plugin-test"
+TEST_VERSION="v0.0.0-dev"
+
 .PHONY:build-plugin
 build-plugin:
+	RELEASE="" \
+	VERSION_mock="${TEST_VERSION}" \
+	VERSION_policy_gate="${TEST_VERSION}" \
+	VERSION_okta_group_gate="${TEST_VERSION}" \
 	goreleaser build --clean --single-target --snapshot
 
 .PHONY:load-resources
