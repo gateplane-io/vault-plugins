@@ -41,3 +41,7 @@ load-infra:
 .PHONY:unload-infra
 unload-infra:
 	docker compose -f test/compose.yaml down
+
+.PHONY:logs
+logs:
+	docker compose -f test/compose.yaml logs -f
