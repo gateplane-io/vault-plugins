@@ -1,5 +1,5 @@
 module "infra" {
-  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.1.0"
+  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.0"
 
   // To showcase the WebUI locally
   // Allows CORS and IFrames
@@ -7,13 +7,19 @@ module "infra" {
 
   mock_plugin = {
     filename = "gateplane-mock"
-    version  = var.plugin_version_mock
+    version  = var.plugin_test_version
     sha256   = filesha256("${path.module}/../../dist/mock_linux_amd64_v1/gateplane-mock")
+  }
+
+  okta_group_gate_plugin = {
+    filename = "gateplane-okta-group-gate"
+    version  = var.plugin_test_version
+    sha256   = filesha256("${path.module}/../../dist/okta-group-gate_linux_amd64_v1/gateplane-okta-group-gate")
   }
 
   policy_gate_plugin = {
     filename = "gateplane-policy-gate"
-    version  = var.plugin_version_policy_gate
+    version  = var.plugin_test_version
     sha256   = filesha256("${path.module}/../../dist/policy-gate_linux_amd64_v1/gateplane-policy-gate")
   }
 
@@ -44,6 +50,28 @@ module "access" {
   }
 }
 
+module "okta" {
+  depends_on = [module.infra]
+  source     = "github.com/gateplane-io/terraform-gateplane-okta-group-gate?ref=0.1.0"
+
+  name            = "oktagate"
+  path_prefix     = ""
+  endpoint_prefix = ""
+
+  plugin_options = {
+    "required_approvals" : 0
+  }
+
+  lease_ttl     = "2s"
+  okta_group_id = var.okta_test_group_id
+
+  okta_mount_accessor = vault_jwt_auth_backend.okta.accessor
+  okta_api = {
+    org_url   = local.okta_url
+    api_token = var.okta_mount_api_token
+  }
+}
+
 module "tokens" {
   source = "github.com/gateplane-io/terraform-test-modules.git//tokens?ref=0.1.0"
 
@@ -54,8 +82,11 @@ module "tokens" {
       "policies" = [
         module.access.policy_names["requestor"],
         module.access.policy_names["approver"],
+        module.okta.policy_names["requestor"],
+        module.okta.policy_names["approver"],
       ]
     },
+
     # Used by the tests
     "user" = {
       "quantity" = 3,
@@ -69,6 +100,13 @@ module "tokens" {
       "policies" = [
         module.access.policy_names["approver"],
         module.mock.policy_names["approver"],
+      ]
+    },
+    "okta" = {
+      "quantity" = 1,
+      "policies" = [
+        module.okta.policy_names["requestor"],
+        module.okta.policy_names["approver"],
       ]
     }
   }
