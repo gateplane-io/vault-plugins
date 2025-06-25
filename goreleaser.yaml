@@ -45,6 +45,23 @@ builds:
       - -X main.Version={{ .Env.VERSION_policy_gate }}
     mod_timestamp: '{{.CommitTimestamp}}'
 
+  - id: okta-group-gate
+    main: ./cmd/okta-group-gate/main.go
+    binary: gateplane-okta-group-gate
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags: [ '-mod=vendor', '-trimpath' ]
+
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Env.VERSION_okta_group_gate }}
+    mod_timestamp: '{{.CommitTimestamp}}'
+
 archives:
   - formats: ['binary']
     name_template: >-
