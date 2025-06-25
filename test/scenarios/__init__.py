@@ -24,18 +24,18 @@ VAULT_URLS = {
         ep: VAULT_API + f"/auth/{mount}/{ep}"
         for ep in ["request", "approve", "claim", "config"]
     }
-    for mount in ("mock", "pgate")
+    for mount in ("mock", "pgate", "oktagate")
 }
 
 CLAIM_KEYS = {
     "mock": "data.claimed",
     "pgate": "auth.client_token",
+    "oktagate": "data.okta_user_id",
 }
 
 TERRAFORM_OUTPUT_FILE = "test/terraform-output.json"
 PLUGIN_CONFIG = {
     "ttl": 1800,
-    "policies": "access-sensitive",
     "approval_ttl": 3600,
     "request_ttl": 3600,
     "required_approvals": 1,
@@ -58,12 +58,14 @@ def vault_api_request(url, data={}, token=None, method="GET"):
     )  # Return the response as a JSON dictionary
 
 
-def get_token_for(tf_output, gatekeeper=False, index=-1):
-    role = "user"
+def get_token_for(tf_output, gatekeeper=False, index=-1, type=None):
+    role_ = "user"
+    if type is not None:
+        role_ = type
     if gatekeeper:
-        role = "gtkpr"
+        role_ = "gtkpr"
 
-    tokens_for_type = list(tf_output["token_map"]["value"][role].items())
+    tokens_for_type = list(tf_output["token_map"]["value"][role_].items())
 
     if index == -1:
         id_to_token = random.choice(tokens_for_type)
@@ -84,7 +86,7 @@ def randomword(length=8):
     return "".join(random.choice(letters) for i in range(length))
 
 
-def approval_scenario(plugin, user_token, gtkpr_tokens):
+def approval_scenario(plugin, user_token, gtkpr_tokens, authenticate_claim=False):
     claim_key, claim_subkey = CLAIM_KEYS[plugin].split(".")
 
     configure_plugin(plugin, {"required_approvals": len(gtkpr_tokens)})
@@ -119,10 +121,10 @@ def approval_scenario(plugin, user_token, gtkpr_tokens):
     status, output = vault_api_request(
         VAULT_URLS[plugin]["claim"],
         method="POST",
+        token=user_token if authenticate_claim else None,
         data={"grant_code": output["data"]["grant_code"]},
     )
     assert 200 == status
 
-    print(output)
     assert claim_subkey in output[claim_key]
     return output[claim_key]
