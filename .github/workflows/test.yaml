@@ -56,19 +56,23 @@ jobs:
         run: |
           # Runs the Docker Compose
           make load-infra
-          sleep 5
 
       - name: Register/Mount plugins
         run: |
           make export-resources
         env:
-          # To rgister plugin versions to Vault/OpenBao
-          TF_VAR_plugin_version_mock: ${{ env.VERSION_mock }}
-          TF_VAR_plugin_version_policy_gate: ${{ env.VERSION_policy_gate }}
+          TF_VAR_okta_mount_api_token: ${{ secrets.OKTA_API_KEY }}
+          TF_VAR_okta_org: ${{ secrets.OKTA_ORG }}
+          TF_VAR_okta_test_group_id: ${{ secrets.OKTA_GROUP_ID }}
+          TF_VAR_okta_test_user_id: ${{ secrets.OKTA_USER_ID }}
 
       - name: "E2E Tests (finally!)"
         run: |
           make test-infra
+        env:
+          OKTA_API_KEY: ${{ secrets.OKTA_API_KEY }}
+          OKTA_ORG: ${{ secrets.OKTA_ORG }}
+          OKTA_GROUP_ID: ${{ secrets.OKTA_GROUP_ID }}
 
       - name: Show Docker logs
         run: |
