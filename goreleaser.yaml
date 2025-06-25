@@ -94,6 +94,18 @@ changelog:
     - title: Others
       order: 999
 
+release:
+  header: |
+    ## Release: `{{ .Tag }}` is here 🚀🚀🚀
+
+    This release contains the following plugin versions:
+    * Policy Gate: `{{ .Env.VERSION_policy_gate }}`
+    * Okta Group Gate: `{{ .Env.VERSION_okta_group_gate }}`
+
+    For plugin changes refer to the changelog 📝.
+
+    ---
+
 # SLACK_WEBHOOK EnvVar must be populated
 announce:
   slack:
