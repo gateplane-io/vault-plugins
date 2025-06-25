@@ -80,3 +80,4 @@ for upgrading to version 5.
    Many databases don't need to do anything with the updated expiration.
 6. Update `RevokeUser` to `DeleteUser`. This is the simplest change. The username to be
    deleted is enclosed in the `DeleteUserRequest` object.
+

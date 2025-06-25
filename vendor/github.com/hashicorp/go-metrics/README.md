@@ -43,7 +43,7 @@ cardinality at the application level.
 
 Backwards Compatibility
 -----------------------
-v0.5.0 of the library renamed the Go module from `github.com/armon/go-metrics` to `github.com/hashicorp/go-metrics`.
+v0.5.0 of the library renamed the Go module from `github.com/armon/go-metrics` to `github.com/hashicorp/go-metrics`. 
 While this did not introduce any breaking changes to the API, the change did subtly break backwards compatibility.
 
 In essence, Go treats a renamed module as entirely distinct and will happily compile both modules into the same binary.
@@ -53,7 +53,7 @@ go-metrics exporting via the `armon` namespace, then any metrics sent to go-metr
 will never get exported.
 
 Eventually all usage of `armon/go-metrics` should be replaced with usage of `hashicorp/go-metrics`. However, a single
-point-in-time coordinated update across all libraries that an application may depend on isn't always feasible. To facilitate migrations,
+point-in-time coordinated update across all libraries that an application may depend on isn't always feasible. To facilitate migrations, 
 a `github.com/hashicorp/go-metrics/compat` package has been introduced. This package and sub-packages are API compatible with
 `armon/go-metrics`. Libraries should be updated to use this package for emitting metrics via the global handlers. Internally,
 the package will route metrics to either `armon/go-metrics` or `hashicorp/go-metrics`. This is achieved at a global level
@@ -66,7 +66,7 @@ within an application via the use of Go build tags.
 If no build tag is specified, the default behavior is to use `armon/go-metrics`. The overall migration path would be as follows:
 
 1. Upgrade libraries using `armon/go-metrics` to consume `hashicorp/go-metrics/compat` instead.
-2. Update library dependencies of applications that use `armon/go-metrics`.
+2. Update library dependencies of applications that use `armon/go-metrics`. 
    * This doesn't need to be one big atomic update but can be slower due to the default behavior remaining unaltered.
    * At this point all metrics will still be emitted to `armon/go-metrics`
 3. Update the application to use `hashicorp/go-metrics`
@@ -77,7 +77,7 @@ If no build tag is specified, the default behavior is to use `armon/go-metrics`.
 Your migration is effectively finished and your application is now exclusively using `hashicorp/go-metrics`. A future release of the library
 will change the default behavior to use `hashicorp/go-metrics` instead of `armon/go-metrics`. At that point in time, any application that
 needs more time before performing the migration must instrument their build system to include the `armonmetrics` tag. A subsequent release
-after that will eventually remove the compatibility layer all together. The rough timeline for this will be mid-2025 for changing the default
+after that will eventually remove the compatibility layer all together. The rough timeline for this will be mid-2025 for changing the default 
 behavior and then the end of 2025 for removal of the compatibility layer.
 
 

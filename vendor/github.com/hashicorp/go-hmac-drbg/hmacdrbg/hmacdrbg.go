@@ -20,9 +20,9 @@ const MaxPersonalizationBytes = 32 // = 256bits
 type HmacDrbg struct {
 	/**The effective security level (eg 128 bits) which this generator was instantiated with.*/
 	SecurityLevelBits int
-
+	
 	k, v []byte
-
+	
 	reseedCounter int
 	updateCounter []byte
 }
@@ -49,26 +49,26 @@ The personalization can be nil.  If non-nil, it's byte length cannot exceed MaxP
 If any of the parameters are out-of-range this function will panic.
 */
 func NewHmacDrbg(securityLevelBits int, entropy, personalization []byte) *HmacDrbg {
-	if securityLevelBits != 112 &&
+	if securityLevelBits != 112 && 
 		securityLevelBits != 128 &&
 		securityLevelBits != 192 &&
 		securityLevelBits != 256 {
-
+		
 		panic("Illegal desiredSecurityLevelBits")
 	}
-
+	
 	if len(entropy) > MaxEntropyBytes {
 		panic("Input entropy too large")
 	}
-
+	
 	if (len(entropy) * 8 * 2) < (securityLevelBits * 3) {
 		panic("Insufficient entropy for security level")
 	}
-
+	
 	if personalization != nil && len(personalization) > MaxPersonalizationBytes {
 		panic("Personalization too long")
 	}
-
+	
 	self := &HmacDrbg{
 		SecurityLevelBits: securityLevelBits,
 		k: make([]byte, 32),
@@ -77,14 +77,14 @@ func NewHmacDrbg(securityLevelBits int, entropy, personalization []byte) *HmacDr
 		updateCounter: make([]byte,8),
 	}
 	binary.LittleEndian.PutUint64(self.updateCounter, uint64(time.Now().Unix()))
-
+	
 	//Instantiate
 	//k already holds 0x00.
 	//Fill v with 0x01.
 	for i := range self.v {
 		self.v[i] = 0x01
 	}
-
+	
 	nPers := 0
 	if personalization != nil {
 		nPers = len(personalization)
@@ -94,9 +94,9 @@ func NewHmacDrbg(securityLevelBits int, entropy, personalization []byte) *HmacDr
 	if personalization != nil {
 		copy(seed[len(entropy):], personalization)
 	}
-
+	
 	self.update(seed)
-
+	
 	return self
 }
 
@@ -110,7 +110,7 @@ func (self *HmacDrbg) update(providedData []byte) {
 	nProvided := 0
 	if providedData != nil {
 		nProvided = len(providedData)
-	}
+	}		
 
 	msg := make([]byte, len(self.v) + 1 + nProvided)
 	copy(msg, self.v)
@@ -126,7 +126,7 @@ func (self *HmacDrbg) update(providedData []byte) {
 		copy(msg, self.v)
 		msg[len(self.v)] = 0x01
 		copy(msg[len(self.v)+1:], providedData)
-
+		
 		self.k = self._hmac(self.k, msg)
 		self.v = self._hmac(self.k, self.v)
 	}
@@ -143,14 +143,14 @@ func (self *HmacDrbg) Reseed(entropy []byte) error {
 	if len(entropy) * 8 < self.SecurityLevelBits {
 		return errors.New("Reseed entropy is less than security-level")
 	}
-
+	
 	if len(entropy) > MaxEntropyBytes {
 		return errors.New("Reseed entropy exceeds MaxEntropyBytes")
 	}
-
+	
 	self.update(entropy)
 	self.reseedCounter = 1
-
+	
 	return nil
 }
 
@@ -162,7 +162,7 @@ func (self *HmacDrbg) Generate(outputBytes []byte) bool {
 	if nWanted > MaxBytesPerGenerate {
 		panic("HmacDrbg: generate request too large.")
 	}
-
+	
 	if self.reseedCounter >= 10000 {
 		//set all bytes to zero, just to be clear
 		for i := range outputBytes {
@@ -175,7 +175,7 @@ func (self *HmacDrbg) Generate(outputBytes []byte) bool {
 	var n int
 	for nGen < nWanted {
 		self.v = self._hmac(self.k, self.v)
-
+		
 		n = nWanted - nGen
 		if n > len(self.v) {
 			n = len(self.v)
@@ -189,9 +189,9 @@ func (self *HmacDrbg) Generate(outputBytes []byte) bool {
 	// The value isn't secret, but just must vary.
 	self.update(self.updateCounter)
 	self.reseedCounter++
-
+	
 	return true
-}
+} 
 
 func NewHmacDrbgReader(drbg *HmacDrbg) *HmacDrbgReader {
 	return &HmacDrbgReader{
@@ -211,11 +211,11 @@ func (self *HmacDrbgReader) Read(b []byte) (n int, err error) {
 			}
 			self.offset = 0
 		}
-
+		
 		b[nRead] = self.buffer[self.offset]
 		nRead++
 		self.offset++
 	}
-
+	
 	return nRead, nil
 }

@@ -53,7 +53,7 @@ as they may have been used for past encryption operations.
 ## Extras
 
 There are several **extra**(s) packages included which build upon the base
-go-kms-wrapping features to provide "extra" capabilities.
+go-kms-wrapping features to provide "extra" capabilities.  
 
 * The
 [`multi`](https://github.com/hashicorp/go-kms-wrapping/tree/main/extras/multi)
@@ -72,7 +72,7 @@ storage.
   package provides key management system features for wrappers
   including scoped [KEKs](https://en.wikipedia.org/wiki/Glossary_of_cryptographic_keys)
   and [DEKs](https://en.wikipedia.org/wiki/Glossary_of_cryptographic_keys) which
-  are wrapped with an external KMS when stored in sqlite or postgres.
+  are wrapped with an external KMS when stored in sqlite or postgres. 
 
 * The [`crypto`](https://github.com/hashicorp/go-kms-wrapping/tree/main/extras/crypto) package provides additional operations like HMAC-SHA256 and a
   derived reader from which keys can be read.
@@ -112,7 +112,7 @@ allowed env vars.
 
 ## Usage
 
-Following is an example usage of the AWS KMS provider.
+Following is an example usage of the AWS KMS provider. 
 
 ```go
 // Context used in this library is passed to various underlying provider

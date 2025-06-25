@@ -17,7 +17,7 @@ matrix:
 
 sudo: false
 
-script:
+script: 
  - go test -v -cpu=2
  - go test -v -cpu=2 -race
  - go test -v -cpu=2 -tags noasm

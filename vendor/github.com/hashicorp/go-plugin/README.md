@@ -148,8 +148,8 @@ which is more for larger underlying changes.
 When we started using plugins (late 2012, early 2013), plugins over RPC
 were the only option since Go didn't support dynamic library loading. Today,
 Go supports the [plugin](https://golang.org/pkg/plugin/) standard library with
-a number of  limitations. Since 2012, our plugin system has stabilized
-from tens of millions of users using it, and has many benefits we've come to
+a number of  limitations. Since 2012, our plugin system has stabilized 
+from tens of millions of users using it, and has many benefits we've come to 
 value greatly.
 
 For example, we use this plugin system in
