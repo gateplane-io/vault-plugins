@@ -63,3 +63,19 @@ repos:
         - "--show-fixes"
        # Run the formatter.
       - id: ruff-format
+
+
+  # Markdown Documentation ToC
+  - repo: https://codeberg.org/frnmst/md-toc
+  # Release updates (ATOM) https://codeberg.org/frnmst/md-toc/tags.atom
+    rev: 9.0.0
+    hooks:
+    - id: md-toc
+      args:
+      # Skip header
+      - --skip-lines
+      - '1'
+      - --in-place
+      - github
+      - -l
+      - '4'
