@@ -58,19 +58,18 @@ layer for <i>Vault/OpenBao</i>
 ### ❓ What is GatePlane?
 GatePlane is a project *made by Security Professionals for Security Professionals* to make time-based, conditional access management approachable and transparent.
 
-Gateplane implements Privileged Access Management (PAM) and Just-In-Time (JIT) access, helping tech groups and companies to give, revoke and monitor permissions across the whole organization. The ultimate goal is to solve problems tech employees stumble upon frequently, such as:
+Gateplane implements Privileged Access Management (PAM) and Just-In-Time (JIT) access, helping tech groups and companies to give, revoke and monitor permissions across the whole organization. The ultimate goal is to solve problems people in tech organizations stumble upon frequently, such as:
 * **Developer**: "*I need to debug production but I don't have access*"
 * **IT**: “*I get around 60 requests for sensitive access per day, and I have to manually set them up and tear them down*”
 * **Security Officer**: “*I have no idea who has access to what after the last incident and the auditor comes next week*”
 * **Security Engineer**: “*Setting up this PAM solution will take forever and will change everything we know about our infrastructure*”
 
 It does so by using the Open-Source and battle-tested tools [Vault](https://developer.hashicorp.com/vault/docs) or [OpenBao](https://openbao.org/) as its underlying infrastructure,
-drawing from their *Authentication*, *Authorization*, *Integrations* and *Structured Logging* principles
-to avoid re-inventing the wheel.
+drawing from their *Authentication*, *Authorization*, *Integrations* and *Structured Logging* principles, avoiding to re-invent the wheel.
 
-*GatePlane Core* comes **free of charge** and available for everyone to audit and contribute to it under the [*Elastic License v2*](./LICENSE).
+*GatePlane Community* comes **free of charge** and available for everyone to audit and contribute to it under the [*Elastic License v2*](./LICENSE).
 
-##### More about GatePlane can be found in its [Website]() (*under contruction*)
+##### More about GatePlane can be found in its [Website]() (*under contruction* 🚧)
 
 ### 🎯 Key Features
 
@@ -86,12 +85,12 @@ to avoid re-inventing the wheel.
 
 It makes *Just-In-Time* (JIT) *Privileged Access Management* (PAM) accessible to everyone through Open-Source tools and auditable code.
 
-Our rationale is that trust on the market of PAM solutions is never really gained if auditability is not part of the equation.
+Our rationale is that trust on the market of PAM solutions is never really gained if auditability is not part of the equation. Also buzzword marketing, and vague promises that often lack technical ground are not in our line of work.
 
-Our mission is enabling everyone to provide these guarantees to their organization without closed-source software, unclear security requirements, opaque components in their threat model and tying their sensitive access to SaaS systems they do not control.
+Our mission is enabling everyone to provide these guarantees to their organization without closed-source software, unclear security requirements, opaque components in their threat model and tying their sensitive access to SaaS systems they do not control. All this with direct and honest communication.
 
 ### 🔍 This Repository
-This repository contains the *GatePlane Core* - a series of *Vault/OpenBao Plugins* (see for: [Vault](https://developer.hashicorp.com/vault/docs/plugins)/[OpenBao](https://openbao.org/docs/plugins/)) that enable Vault/OpenBao to act as an Access Control Plane, providing *conditional access* to resources.
+This repository contains a series of *Vault/OpenBao Plugins* (see for: [Vault](https://developer.hashicorp.com/vault/docs/plugins)/[OpenBao](https://openbao.org/docs/plugins/)) that enable Vault/OpenBao to act as an Access Control Plane, providing *conditional access* to resources.
 
 The plugins currently included:
 * **Policy Gate**: Controls Access to Vault/OpenBao and its Integrations
