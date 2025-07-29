@@ -76,7 +76,7 @@ drawing from their *Authentication*, *Authorization*, *Integrations* and *Struct
 * **Approval-Based Access**: Access is granted only if someone else approves of it
 * **Access that expires**: Every granted access has an expiration date, no exceptions
 * **Vast support of Integrations**: Supports Kubernetes, AWS/GCP/Azure, SSH, Databases and the whole suite of Vault/OpenBao Secret Engines, as well as JIT Okta Group Membership management
-* 🚧 **WebUI to Request, Approve and Claim access** : All available accesses are listed and can be managed through a Web Application tied with your Vault/OpenBao instance
+* [**WebUI to Request, Approve and Claim access**](https://app.gateplane.io) : All available accesses are listed and can be managed through a Web Application tied with your Vault/OpenBao instance
 * **Notifications**: When a user requests, approves or claims access, a Slack/Discord/MSTeams/*you-name-it* message is sent
 * 🚧 **Metrics**: Measurements on the friction relief, numbers of elevated accesses needed and statistics on mean-time-to-claim
 
@@ -119,7 +119,7 @@ adds the user requesting access to a configured Okta Group for a configured time
 
 ##### 🚧 API documentation for each of the plugins is provided [here](./docs/).
 
-##### Documentation on setting up the plugins is provided [below](#how-to-install).
+##### Documentation on setting up the plugins is provided [below](#-how-to-install).
 
 ### 📋 Features in Detail
 
@@ -128,6 +128,9 @@ that achieve Just-In-Time, Conditional Privileged Access.
 
 These components are *self-hostable*, with *source always available* in this repository,
 and it is allowed to modify to suit your needs, under the terms of [*Elastic License v2*](./LICENSE).
+
+Additionally, the [GatePlane WebUI under `app.gateplane.io` domain](https://app.gateplane.io)
+can be used by setting up your Vault / OpenBao instance, using the instructions provided [below](#-how-to-install).
 
 The **Team** and **Enterprise** packages are only used through the WebUI, and are tied to services
 hosted by GatePlane, such as Notifications and Metrics.
@@ -138,11 +141,13 @@ hosted by GatePlane, such as Notifications and Metrics.
 * **Configurable number of approvers**: Sensitive accesses can be protected by more than 1 approvers
 * **Just-In-Time Access**: All accesses granted expire through a configured TTL
 * **Reason for access**: Mandated or optional reason for access is embedded in the access request and audit trail
+* **GatePlane WebUI under `app.gateplane.io`**: An aggregated view, where one can create, approve and claim access requests
 
 #### Team and Enterprise Edition
 
 * **Notification Service**: Get notified for each *access request*, *approval*, *claim* or *revokation* on your organization's messaging app
 * **Metrics Service**: Identify friction points, most used accesses and critical activity windows
+* **Dedicated WebUI domain**: Access a pre-configured GatePlane WebUI under a custom domain (e.g: `<myorg>.app.gateplane.io`), allowing for security configurations (e.g: mTLS), Vault/OpenBao login integrations (e.g: Okta login, Userpass, etc) and Access Claim Integrations.
 * **Support**: Get support on designing your infrastructure access management with GatePlane
 
 * **Zero-Knowledge**: GatePlane infrastructure does only get non-sensitive metadata to provide the above features.
@@ -209,6 +214,8 @@ module "gateplane_setup" {
 }
 ```
 
+##### This module can also be used to set Vault/OpenBao instance's CORS headers to [`app.gateplane.io`](app.gateplane.io), through the `domains` parameter.
+
 #### Enabling a Gate - Manually
 
 In this example, the Policy Gate plugin will be used to protect a Vault/OpenBao path,
@@ -274,6 +281,8 @@ output "policies" {
     ]
 }
 ```
+
+##### This module also adds capabilities to the `requestor` and `approver` policies so they can be used with [GatePlane WebUI](app.gateplane.io), through the `enable_ui` parameter.
 
 ### ▶️ Usage Example
 
