@@ -114,7 +114,7 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 	requiredApprovals := config.RequiredApprovals
 	if accessRequest.Status == Pending && requestIsApproved(accessRequest, requiredApprovals) {
 		accessRequest.Status = Approved
-		err = accessRequest.createGrantCode()
+		err = accessRequest.CreateGrantCode()
 		err2 := b.storeGrantCodeMap(ctx, req, &accessRequest)
 		err3 := b.storeRequest(ctx, req, &accessRequest)
 		if err != nil {
