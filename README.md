@@ -3,6 +3,7 @@
 [![License: ElasticV2](https://img.shields.io/badge/ElasticV2-green?label=license&cacheSeconds=3600&link=https%3A%2F%2Fwww.elastic.co%2Flicensing%2Felastic-license)](https://www.elastic.co/licensing/elastic-license)
 [![Test Plugins](https://github.com/gateplane-io/vault-plugins/actions/workflows/test.yaml/badge.svg)](https://github.com/gateplane-io/vault-plugins/actions/workflows/test.yaml)
 [![GoReport Card](https://img.shields.io/badge/go%20report-A+-brightgreen.svg?style=flat)](https://goreportcard.com/report/github.com/gateplane-io/vault-plugins)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/gateplane-io/vault-plugins/badge)](https://scorecard.dev/viewer/?uri=github.com/gateplane-io/vault-plugins)
 
 <h3 align="center">
 An <i>Approval-Based</i>,<br/>
