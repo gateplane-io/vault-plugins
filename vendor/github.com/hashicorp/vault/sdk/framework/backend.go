@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/go-kms-wrapping/entropy/v2"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
+	iRegexp "github.com/hashicorp/go-secure-stdlib/regexp"
 	"github.com/hashicorp/vault/sdk/database/helper/connutil"
 	"github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/hashicorp/vault/sdk/helper/errutil"
@@ -486,6 +487,35 @@ func (b *Backend) Route(path string) *Path {
 	return result
 }
 
+// RecoverSourcePathFieldData returns the captures from the recover source path
+// as field data
+func (b *Backend) RecoverSourcePathFieldData(req *logical.Request) (*FieldData, error) {
+	if req.RecoverSourcePath == "" {
+		return nil, fmt.Errorf("request has no recover source path")
+	}
+	newPath, _ := b.route(req.Path)
+	sourcePath, sourceCaptures := b.route(req.RecoverSourcePath)
+	if sourcePath == nil || sourcePath.Pattern != newPath.Pattern {
+		return nil, fmt.Errorf("recover source path %q does not match request path %q", req.RecoverSourcePath, req.Path)
+	}
+
+	raw := make(map[string]interface{}, len(sourceCaptures))
+	for k, v := range sourceCaptures {
+		raw[k] = v
+	}
+	fd := FieldData{
+		Raw:    raw,
+		Schema: sourcePath.Fields,
+	}
+
+	err := fd.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("field validation of recover source path failed: %w", err)
+	}
+
+	return &fd, nil
+}
+
 // Secret is used to look up the secret with the given type.
 func (b *Backend) Secret(k string) *Secret {
 	for _, s := range b.Secrets {
@@ -537,8 +567,10 @@ func (b *Backend) init() {
 			p.Pattern = p.Pattern + "$"
 		}
 
-		// Detect the coding error of an invalid Pattern
-		b.pathsRe[i] = regexp.MustCompile(p.Pattern)
+		// Detect the coding error of an invalid Pattern. We are using an interned
+		// regexps library here to save memory, since we can have many instances of the
+		// same backend.
+		b.pathsRe[i] = iRegexp.MustCompileInterned(p.Pattern)
 	}
 }
 
