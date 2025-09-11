@@ -19,6 +19,8 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
 // Path for user to request access
@@ -81,7 +83,7 @@ func (b *BaseBackend) handleRequestUpdate(ctx context.Context, req *logical.Requ
 		"ReasonNoWhitspaceLength", len(strings.TrimSpace(reason)),
 	)
 
-	accessRequest := NewAccessRequest(config, entityID, reason)
+	accessRequest := models.NewAccessRequest(config, entityID, reason)
 
 	err = b.storeRequest(ctx, req, &accessRequest)
 	if err != nil {

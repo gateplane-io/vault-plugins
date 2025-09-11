@@ -16,6 +16,8 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
 // Path for gatekeeper to grant access
@@ -67,7 +69,7 @@ func (b *BaseBackend) handleApprove(ctx context.Context, req *logical.Request, d
 		return logical.ErrorResponse("Corresponding request does not exist"), logical.ErrNotFound
 	}
 
-	if accessRequest.Status != Pending {
+	if accessRequest.Status != models.Pending {
 		return logical.ErrorResponse("Request cannot be approved as it is not in pending state"), logical.ErrPermissionDenied
 	}
 
@@ -76,7 +78,7 @@ func (b *BaseBackend) handleApprove(ctx context.Context, req *logical.Request, d
 		return logical.ErrorResponse("Approval by this entity already exists"), logical.ErrPermissionDenied
 	}
 
-	approval := NewApproval(config, entityID, requestID)
+	approval := models.NewApproval(config, entityID, requestID)
 	accessRequest.Approvals[entityID] = approval
 	approved := requestIsApproved(*accessRequest, config.RequiredApprovals)
 

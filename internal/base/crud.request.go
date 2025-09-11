@@ -16,11 +16,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/logical"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
 /* ======================== CRUD Request*/
 
-func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requestID string) (*AccessRequest, error) {
+func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requestID string) (*models.AccessRequest, error) {
 	entityID := req.EntityID
 	// Not Relevant in the /claim endpoint (it's unauth'd in PolicyGate)
 	/* Disallow getting an AccessRequest object to non-Entities
@@ -46,7 +48,7 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 		return nil, nil
 	}
 
-	var accessRequest AccessRequest
+	var accessRequest models.AccessRequest
 	if err := json.Unmarshal(entry.Value, &accessRequest); err != nil {
 		b.Logger().Error("[-] Failed to unmarshal AccessRequest",
 			"EntityID", entityID,
@@ -58,7 +60,7 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 
 	// Check ALL expirations
 	if requestHasExpired(accessRequest) {
-		accessRequest.Status = AccessRequestStatus(Expired)
+		accessRequest.Status = models.AccessRequestStatus(models.Expired)
 		b.Logger().Info("[*] Request set to Expired",
 			"EntityID", entityID,
 			"RequestID", requestID,
@@ -67,7 +69,7 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 	}
 	for _, approval := range accessRequest.Approvals {
 		if approvalHasExpired(approval) {
-			approval.Status = ApprovalStatus(ApprovalExpired)
+			approval.Status = models.ApprovalStatus(models.ApprovalExpired)
 			b.Logger().Info("[*] Request set to Expired",
 				"EntityID", entityID,
 				"RequestID", requestID,
@@ -112,9 +114,9 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 
 	// Handle Approval Status
 	requiredApprovals := config.RequiredApprovals
-	if accessRequest.Status == Pending && requestIsApproved(accessRequest, requiredApprovals) {
-		accessRequest.Status = Approved
-		err = accessRequest.createGrantCode()
+	if accessRequest.Status == models.Pending && requestIsApproved(accessRequest, requiredApprovals) {
+		accessRequest.Status = models.Approved
+		err = accessRequest.CreateGrantCode()
 		err2 := b.storeGrantCodeMap(ctx, req, &accessRequest)
 		err3 := b.storeRequest(ctx, req, &accessRequest)
 		if err != nil {
@@ -148,7 +150,7 @@ func (b *BaseBackend) getRequest(ctx context.Context, req *logical.Request, requ
 	return &accessRequest, nil
 }
 
-func (b *BaseBackend) listRequests(ctx context.Context, req *logical.Request) ([]AccessRequest, error) {
+func (b *BaseBackend) listRequests(ctx context.Context, req *logical.Request) ([]models.AccessRequest, error) {
 	entityID := req.EntityID
 	// This is not sensitive to Entities only
 	/* Disallow listing AccessRequest object to non-Entities
@@ -157,7 +159,7 @@ func (b *BaseBackend) listRequests(ctx context.Context, req *logical.Request) ([
 	}
 	*/
 
-	accessRequests := []AccessRequest{}
+	accessRequests := []models.AccessRequest{}
 
 	entries, err := req.Storage.List(ctx, storageKeyForRequest(""))
 	if err != nil {
@@ -192,7 +194,7 @@ func (b *BaseBackend) listRequests(ctx context.Context, req *logical.Request) ([
 	return accessRequests, nil
 }
 
-func (b *BaseBackend) deleteRequest(ctx context.Context, req *logical.Request, accessRequest AccessRequest) error {
+func (b *BaseBackend) deleteRequest(ctx context.Context, req *logical.Request, accessRequest models.AccessRequest) error {
 	entityID := req.EntityID
 	// This is not sensitive to Entities only
 	/* Disallow listing AccessRequest object to non-Entities
@@ -213,7 +215,7 @@ func (b *BaseBackend) deleteRequest(ctx context.Context, req *logical.Request, a
 	return nil
 }
 
-func (b *BaseBackend) storeRequest(ctx context.Context, req *logical.Request, accessRequest *AccessRequest) error {
+func (b *BaseBackend) storeRequest(ctx context.Context, req *logical.Request, accessRequest *models.AccessRequest) error {
 	entityID := req.EntityID
 	// This is not sensitive to Entities only
 	/* Disallow listing AccessRequest object to non-Entities

@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 
 	"github.com/gateplane-io/vault-plugins/internal/base"
+	models "github.com/gateplane-io/vault-plugins/pkg/models/policy-gate"
 )
 
 type Backend struct {
@@ -27,7 +28,7 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 	defer b.BaseBackend.BaseMutex.Unlock()
 	b.Logger().Info("Initializing plugin configuration")
 
-	defaultConfig := NewDefaultConfig()
+	defaultConfig := models.NewDefaultConfig()
 	b.StoreConfigurationToStorage(ctx, req.Storage, &defaultConfig)
 
 	b.Logger().Info("Vault auth plugin initialized with default configuration",

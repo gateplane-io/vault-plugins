@@ -15,9 +15,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/logical"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
-func (b *BaseBackend) GetAccessRequestByGrantCode(ctx context.Context, req *logical.Request, grantCode string) (*AccessRequest, error) {
+func (b *BaseBackend) GetAccessRequestByGrantCode(ctx context.Context, req *logical.Request, grantCode string) (*models.AccessRequest, error) {
 
 	requestIDEntry, err := req.Storage.Get(ctx, fmt.Sprintf("%s/%s", GrantCodeKey, grantCode))
 	if err != nil {
@@ -71,7 +73,7 @@ func (b *BaseBackend) GetAccessRequestByGrantCode(ctx context.Context, req *logi
 		return nil, err
 	}
 
-	accessRequest.Status = AccessRequestStatus(Active)
+	accessRequest.Status = models.AccessRequestStatus(models.Active)
 	accessRequest.GrantCode = ""
 
 	err = b.storeRequest(ctx, req, accessRequest)
@@ -86,7 +88,7 @@ func (b *BaseBackend) GetAccessRequestByGrantCode(ctx context.Context, req *logi
 	return accessRequest, nil
 }
 
-func (b *BaseBackend) storeGrantCodeMap(ctx context.Context, req *logical.Request, accessRequest *AccessRequest) error {
+func (b *BaseBackend) storeGrantCodeMap(ctx context.Context, req *logical.Request, accessRequest *models.AccessRequest) error {
 
 	requestID := accessRequest.ID
 	requestIDEntry := []byte(requestID)
