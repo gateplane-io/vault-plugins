@@ -42,6 +42,13 @@ github.com/armon/go-radix
 # github.com/cenkalti/backoff/v4 v4.3.0
 ## explicit; go 1.18
 github.com/cenkalti/backoff/v4
+# github.com/containerd/errdefs v1.0.0
+## explicit; go 1.20
+github.com/containerd/errdefs
+# github.com/containerd/errdefs/pkg v0.3.0
+## explicit; go 1.22
+github.com/containerd/errdefs/pkg/errhttp
+github.com/containerd/errdefs/pkg/internal/cause
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
@@ -51,12 +58,14 @@ github.com/decred/dcrd/dcrec/secp256k1/v4
 # github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
-# github.com/docker/docker v27.2.1+incompatible
+# github.com/docker/docker v28.3.3+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
+github.com/docker/docker/api/types/build
 github.com/docker/docker/api/types/checkpoint
+github.com/docker/docker/api/types/common
 github.com/docker/docker/api/types/container
 github.com/docker/docker/api/types/events
 github.com/docker/docker/api/types/filters
@@ -64,6 +73,7 @@ github.com/docker/docker/api/types/image
 github.com/docker/docker/api/types/mount
 github.com/docker/docker/api/types/network
 github.com/docker/docker/api/types/registry
+github.com/docker/docker/api/types/storage
 github.com/docker/docker/api/types/strslice
 github.com/docker/docker/api/types/swarm
 github.com/docker/docker/api/types/swarm/runtime
@@ -72,7 +82,7 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
-github.com/docker/docker/errdefs
+github.com/docker/docker/internal/lazyregexp
 github.com/docker/docker/internal/multierror
 github.com/docker/docker/pkg/stdcopy
 # github.com/docker/go-connections v0.5.0
@@ -238,9 +248,12 @@ github.com/hashicorp/go-secure-stdlib/parseutil
 # github.com/hashicorp/go-secure-stdlib/permitpool v1.0.0
 ## explicit; go 1.23
 github.com/hashicorp/go-secure-stdlib/permitpool
-# github.com/hashicorp/go-secure-stdlib/plugincontainer v0.4.1
-## explicit; go 1.22
+# github.com/hashicorp/go-secure-stdlib/plugincontainer v0.4.2
+## explicit; go 1.24
 github.com/hashicorp/go-secure-stdlib/plugincontainer
+# github.com/hashicorp/go-secure-stdlib/regexp v1.0.0
+## explicit; go 1.24
+github.com/hashicorp/go-secure-stdlib/regexp
 # github.com/hashicorp/go-secure-stdlib/strutil v0.1.2
 ## explicit; go 1.16
 github.com/hashicorp/go-secure-stdlib/strutil
@@ -271,8 +284,8 @@ github.com/hashicorp/hcl/json/token
 # github.com/hashicorp/vault/api v1.21.0
 ## explicit; go 1.23.0
 github.com/hashicorp/vault/api
-# github.com/hashicorp/vault/sdk v0.18.0
-## explicit; go 1.24.0
+# github.com/hashicorp/vault/sdk v0.19.0
+## explicit; go 1.25.0
 github.com/hashicorp/vault/sdk/database/dbplugin
 github.com/hashicorp/vault/sdk/database/helper/cacheutil
 github.com/hashicorp/vault/sdk/database/helper/connutil
@@ -403,7 +416,7 @@ github.com/opencontainers/image-spec/specs-go/v1
 # github.com/patrickmn/go-cache v0.0.0-20180815053127-5633e0862627
 ## explicit
 github.com/patrickmn/go-cache
-# github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7
+# github.com/petermattis/goid v0.0.0-20250721140440-ea1c0173183e
 ## explicit; go 1.17
 github.com/petermattis/goid
 # github.com/pierrec/lz4 v2.6.1+incompatible
