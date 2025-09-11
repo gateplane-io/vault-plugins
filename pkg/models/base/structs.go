@@ -134,7 +134,7 @@ func NewAccessRequest(config *Config, entityID string, reason string) AccessRequ
 	}
 }
 
-func (accessRequest *AccessRequest) createGrantCode() error {
+func (accessRequest *AccessRequest) CreateGrantCode() error {
 	if accessRequest.GrantCode != "" {
 		return fmt.Errorf("GrantCode has already been created for AccessRequest %s", accessRequest.ID)
 	}

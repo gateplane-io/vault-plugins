@@ -17,6 +17,8 @@ import (
 	"github.com/okta/okta-sdk-golang/v5/okta"
 
 	"github.com/gateplane-io/vault-plugins/internal/base"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/okta-group-gate"
 )
 
 type Backend struct {
@@ -31,7 +33,7 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 
 	// hadle defaults like this
 	// https://github.com/jfrog/vault-plugin-secrets-artifactory/blob/master/backend.go#L86
-	defaultConfig := NewDefaultConfig()
+	defaultConfig := models.NewDefaultConfig()
 	b.StoreConfigurationToStorage(ctx, req.Storage, &defaultConfig)
 
 	if b.oktaClient == nil {

@@ -16,12 +16,14 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/logical"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/policy-gate"
 )
 
 /* ======================== CRUD Config*/
 const ConfigKey = "config"
 
-func (b *Backend) GetConfiguration(ctx context.Context, req *logical.Request) (*Config, error) {
+func (b *Backend) GetConfiguration(ctx context.Context, req *logical.Request) (*models.Config, error) {
 
 	entry, err := req.Storage.Get(ctx, ConfigKey)
 	if err != nil {
@@ -31,7 +33,7 @@ func (b *Backend) GetConfiguration(ctx context.Context, req *logical.Request) (*
 		return nil, fmt.Errorf("Could not retrieve configuration from PluginBackend")
 	}
 
-	var config Config
+	var config models.Config
 	if err := json.Unmarshal(entry.Value, &config); err != nil {
 		b.Logger().Error("[-] Failed to unmarshal Config",
 			"error", err,
@@ -41,7 +43,7 @@ func (b *Backend) GetConfiguration(ctx context.Context, req *logical.Request) (*
 	return &config, nil
 }
 
-func (b *Backend) StoreConfigurationToStorage(ctx context.Context, storage logical.Storage, config *Config) error {
+func (b *Backend) StoreConfigurationToStorage(ctx context.Context, storage logical.Storage, config *models.Config) error {
 	configJSON, err := json.Marshal(*config)
 	if err != nil {
 		b.Logger().Error("[-] Could not marshal configuration to JSON",
@@ -66,6 +68,6 @@ func (b *Backend) StoreConfigurationToStorage(ctx context.Context, storage logic
 	return nil
 }
 
-func (b *Backend) StoreConfiguration(ctx context.Context, req *logical.Request, config *Config) error {
+func (b *Backend) StoreConfiguration(ctx context.Context, req *logical.Request, config *models.Config) error {
 	return b.StoreConfigurationToStorage(ctx, req.Storage, config)
 }

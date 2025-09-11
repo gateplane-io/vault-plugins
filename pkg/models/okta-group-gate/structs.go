@@ -8,12 +8,12 @@
 // Use, modification, and redistribution permitted under the terms of the license,
 // except for providing this software as a commercial service or product.
 
-package policy_gate
+package okta_group_gate
 
 import (
 	"fmt"
 
-	"github.com/gateplane-io/vault-plugins/internal/base"
+	"github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
 /*
@@ -23,26 +23,27 @@ and re-implementing Methods the CRUD
 
 type Config struct {
 	*base.Config
-	Policies []string `json:"policies"`
+	OktaGroupID string `json:"okta_group_id"`
 }
 
 func NewDefaultConfig() Config {
 	bConfig := base.NewDefaultConfig()
 	return Config{
-		Config:   &bConfig,
-		Policies: []string{},
+		Config:      &bConfig,
+		OktaGroupID: "",
 	}
 }
 
 func (c *Config) SetConfigurationKey(key string, value interface{}) error {
 	switch key {
 	// add the case of the new key
-	case "policies":
-		if v, ok := value.([]string); ok {
-			c.Policies = v
+	case "okta_group_id":
+		if v, ok := value.(string); ok {
+			c.OktaGroupID = v
 		} else {
-			return fmt.Errorf("invalid type for policies, expected []string")
+			return fmt.Errorf("invalid type for 'okta_group_id', expected string")
 		}
+
 	default:
 		return c.Config.SetConfigurationKey(key, value)
 	}

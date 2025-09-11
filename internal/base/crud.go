@@ -13,6 +13,8 @@ package base
 import (
 	"fmt"
 	"time"
+
+	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
 /* Storage Keys */
@@ -26,36 +28,36 @@ func storageKeyForRequest(requestID string) string {
 	return fmt.Sprintf("%s/%s", RequestKey, requestID)
 }
 
-func requestHasExpired(accessRequest AccessRequest) bool {
+func requestHasExpired(accessRequest models.AccessRequest) bool {
 	return accessRequest.Expiration.Before(time.Now())
 }
 
-func requestIsDeletable(accessRequest AccessRequest, deleteAfter time.Duration) bool {
-	if accessRequest.Status != Expired {
+func requestIsDeletable(accessRequest models.AccessRequest, deleteAfter time.Duration) bool {
+	if accessRequest.Status != models.Expired {
 		return false
 	}
 	return accessRequest.Expiration.Before(time.Now().Add(-deleteAfter))
 }
 
-func approvalHasExpired(approval Approval) bool {
+func approvalHasExpired(approval models.Approval) bool {
 	return approval.Expiration.Before(time.Now())
 }
 
-func validApprovalsNum(accessRequest AccessRequest) int {
+func validApprovalsNum(accessRequest models.AccessRequest) int {
 	numOfvalidApprovals := 0
 	for _, approval := range accessRequest.Approvals {
 		// If someone changed their mind, the request can't be granted
 		// if approval.Status == ApprovalRetracted{
 		// 	return false
 		// }
-		if approval.Status == ApprovalActive {
+		if approval.Status == models.ApprovalActive {
 			numOfvalidApprovals++
 		}
 	}
 	return numOfvalidApprovals
 }
 
-func requestIsApproved(accessRequest AccessRequest, requiredApprovals int) bool {
+func requestIsApproved(accessRequest models.AccessRequest, requiredApprovals int) bool {
 	numOfvalidApprovals := validApprovalsNum(accessRequest)
 	return numOfvalidApprovals >= requiredApprovals
 }
