@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/hashicorp/go-uuid v1.0.3
-	github.com/hashicorp/vault/api v1.21.0
+	github.com/hashicorp/vault/api v1.22.0
 	github.com/hashicorp/vault/sdk v0.19.0
 	github.com/okta/okta-sdk-golang/v5 v5.0.6
 )
