@@ -25,7 +25,7 @@ import (
 )
 
 // set at buildtime with "-ldflags -X main.Version=..."
-var Version = "0.0.0"
+var Version = "v0.0.0"
 
 func BackendFactory(ctx context.Context, c *logical.BackendConfig) (logical.Backend, error) {
 	b := Backend(c)
@@ -40,20 +40,27 @@ func Backend(c *logical.BackendConfig) *pgate.Backend {
 	bFinal := &pgate.Backend{BaseBackend: &baseBackend}
 
 	baseBackend.Backend = &framework.Backend{
-		BackendType:    logical.TypeCredential,
-		Help:           "Vault/OpenBao Plugin for approval-based access to policies",
+		BackendType:    logical.TypeLogical,
+		Help:           "[PolicyGate] Vault/OpenBao Plugin for conditional access to Policies",
 		RunningVersion: Version,
-		PathsSpecial: &logical.Paths{
-			Unauthenticated: []string{"claim"},
-		},
 		Paths: []*framework.Path{
+			// Provided by Base package
+			base.PathConfig(&baseBackend),
+			base.PathConfigLease(&baseBackend),
+
 			base.PathRequest(&baseBackend),
 			base.PathApprove(&baseBackend),
+			base.PathClaim(&baseBackend),
 
-			pgate.PathClaim(bFinal),
-			pgate.PathConfig(bFinal),
+			// Provided by Policy Gate
+			pgate.PathConfigApiVault(bFinal),
+			pgate.PathConfigAccess(bFinal),
+		},
+		Secrets: []*framework.Secret{
+			base.ClaimSecret(&baseBackend),
 		},
 	}
+
 	bFinal.Logger().Debug("Plugin initialized")
 	return bFinal
 }
