@@ -25,7 +25,7 @@ import (
 )
 
 // set at buildtime with "-ldflags -X main.Version=..."
-var Version = "0.0.0"
+var Version = "v0.0.0"
 
 func BackendFactory(ctx context.Context, c *logical.BackendConfig) (logical.Backend, error) {
 	b := Backend(c)
@@ -40,23 +40,20 @@ func Backend(c *logical.BackendConfig) *mock.Backend {
 	bFinal := &mock.Backend{BaseBackend: &baseBackend}
 
 	baseBackend.Backend = &framework.Backend{
-		BackendType:    logical.TypeCredential,
-		Help:           "Vault/OpenBao Plugin for approval-based access to policies",
+		BackendType:    logical.TypeLogical,
+		Help:           "[Mock] Vault/OpenBao Plugin for testing conditional workflows",
 		RunningVersion: Version,
-		PathsSpecial: &logical.Paths{
-			// Keeping Claim unauthenticated to match the case
-			// of Policy Gate - map to AccessRequest through GrantCode
-			Unauthenticated: []string{"claim"},
-		},
 		Paths: []*framework.Path{
 			// Provided by Base package
 			base.PathConfig(&baseBackend),
+			base.PathConfigLease(&baseBackend),
 
 			base.PathRequest(&baseBackend),
 			base.PathApprove(&baseBackend),
-
-			// Custom Claim endpoint
-			mock.PathClaim(bFinal),
+			base.PathClaim(&baseBackend),
+		},
+		Secrets: []*framework.Secret{
+			base.ClaimSecret(&baseBackend),
 		},
 	}
 

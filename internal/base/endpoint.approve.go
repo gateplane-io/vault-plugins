@@ -16,89 +16,86 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
-
-	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
 )
 
-// Path for gatekeeper to grant access
 func PathApprove(b *BaseBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "approve",
 		Fields: map[string]*framework.FieldSchema{
-			"request_id": {
+			"requestor_id": {
 				Type:        framework.TypeString,
-				Description: "The entity ID of the user being granted access.",
-				Required:    true,
+				Description: "The RequestorID of the AccessRequest to approve",
+				Required:    false,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: b.handleApprove,
 		},
+		HelpSynopsis: "Approves the AccessRequest created by the provided RequestorID",
+		HelpDescription: `This endpoint approves AccessRequests.
 
-		HelpSynopsis:    "Adds an Approval to an AccessRequest",
-		HelpDescription: `This endpoint approves AccessRequests designated by 'request_id' parameter.`,
+		'requestor_id' designates the owner of the AccessRequest to be approved.
+		`,
 	}
 }
 
 func (b *BaseBackend) handleApprove(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	entityID := req.EntityID
-	requestID := d.Get("request_id").(string)
 
 	if entityID == "" {
 		return logical.ErrorResponse("Token has no EntityID assigned"), logical.ErrPermissionDenied
 	}
 
-	if requestID == "" {
-		return nil, fmt.Errorf("No requestor EntityID set")
-	}
-
-	if entityID == requestID {
-		return logical.ErrorResponse("Entities cannot approve their own requests"), logical.ErrPermissionDenied
-	}
+	requestorID := d.Get("requestor_id").(string)
+	// if !ok {
+	// 	return logical.ErrorResponse(fmt.Sprint(ok)), nil
+	// }
 
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	config, err := b.GetConfiguration(ctx, req)
+	approverID := entityID
+
+	if requestorID == approverID {
+		return logical.ErrorResponse("Entities cannot approve their own requests"), logical.ErrPermissionDenied
+	}
+
+	accessRequest, err := b.GetRequest(ctx, req, requestorID)
 	if err != nil {
-		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 
-	accessRequest, err := b.getRequest(ctx, req, requestID)
+	if accessRequest == nil {
+		return &logical.Response{Warnings: []string{"Request does not exist"}}, nil
+	}
+
+	if accessRequest.Status != Pending {
+		return logical.ErrorResponse(
+			fmt.Sprintf(
+				"Cannot Approve an AccessRequest that is not in 'pending' state (state: %s)",
+				accessRequest.Status.String(),
+			),
+		), nil
+	}
+
+	alreadyApproved := accessRequest.isApprovedBy(approverID)
+	if alreadyApproved {
+		return &logical.Response{Warnings: []string{"Request already approved by this user"}}, nil
+	}
+
+	_, _, err = accessRequest.Approve(approverID) // lastApproval
 	if err != nil {
-		return logical.ErrorResponse("Corresponding request does not exist"), logical.ErrNotFound
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 
-	if accessRequest.Status != models.Pending {
-		return logical.ErrorResponse("Request cannot be approved as it is not in pending state"), logical.ErrPermissionDenied
-	}
-
-	_, haveApproved := accessRequest.Approvals[entityID]
-	if haveApproved {
-		return logical.ErrorResponse("Approval by this entity already exists"), logical.ErrPermissionDenied
-	}
-
-	approval := models.NewApproval(config, entityID, requestID)
-	accessRequest.Approvals[entityID] = approval
-	approved := requestIsApproved(*accessRequest, config.RequiredApprovals)
-
-	err = b.storeRequest(ctx, req, accessRequest)
+	err = b.StoreRequest(ctx, req, accessRequest)
 	if err != nil {
-		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
-
-	b.Logger().Info("[+] Approval created",
-		"EntityID", entityID,
-		"RequestID", requestID,
-	)
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"message":         "access approved",
-			"iat":             approval.CreatedAt,
-			"exp":             approval.Expiration,
-			"approval_id":     approval.ID,
-			"access_approved": approved,
+			"status": accessRequest.Status,
 		},
 	}, nil
 }

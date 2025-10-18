@@ -16,14 +16,16 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	"github.com/gateplane-io/vault-plugins/pkg/responses"
 )
 
 // Path for plugin configuration
 func PathConfig(b *BaseBackend) *framework.Path {
 	return &framework.Path{
-		Pattern: "config",
+		Pattern: ConfigKey,
 		Fields: map[string]*framework.FieldSchema{
-			"require_reason": {
+			"require_justification": {
 				Type:        framework.TypeBool,
 				Description: "Whether the 'reason' parameter is required in /request endpoint.",
 				Required:    false,
@@ -31,11 +33,6 @@ func PathConfig(b *BaseBackend) *framework.Path {
 			"request_ttl": {
 				Type:        framework.TypeDurationSecond,
 				Description: "Time until a request expires.",
-				Required:    false,
-			},
-			"approval_ttl": {
-				Type:        framework.TypeDurationSecond,
-				Description: "Time until a granted request expires.",
 				Required:    false,
 			},
 			"delete_after": {
@@ -54,14 +51,14 @@ func PathConfig(b *BaseBackend) *framework.Path {
 			logical.ReadOperation:   b.handleConfigRead,
 		},
 
-		HelpSynopsis: "Configures this backend",
+		HelpSynopsis: "Configure this backend conditional workflows and AccessRequest validity periods",
 		HelpDescription: `This endpoint sets the base configuration for this backend.
 
-		'require_reason' configures whether a non-empty 'reason' parameter is required for AccessRequest creation.
+		'require_justification' configures whether a non-empty 'justification' parameter is required for the creation of an AccessRequest.
 
-		'request_ttl', 'approval_ttl' and 'delete_after' configure the lifetime of AccessRequests and Approvals.
+		'request_ttl' and 'delete_after' configure the lifetime of AccessRequests.
 
-		'required_approvals' sets the umber of approval for an AccessRequest to get to a claimable state.
+		'required_approvals' sets the number of approvals for an AccessRequest required to reach the 'approved' state (can be positive integer or 0).
 		`,
 	}
 }
@@ -71,17 +68,21 @@ func (b *BaseBackend) handleConfigUpdate(ctx context.Context, req *logical.Reque
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	config, err := b.GetConfiguration(ctx, req)
+	config, err := GetConfiguration[*Config](ctx, b, req, "")
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
 	for key := range d.Raw {
-		value := d.Get(key)
+		value, ok := d.GetOk(key)
+		if !ok {
+			continue
+		}
 		b.Logger().Info("[*] Replacing configuration value",
+			"Path", req.Path,
 			"EntityID", entityID,
 			"ConfigKey", key,
-			// "OldValue", config
+			// "OldValue", config,
 			"NewValue", value,
 		)
 
@@ -90,31 +91,36 @@ func (b *BaseBackend) handleConfigUpdate(ctx context.Context, req *logical.Reque
 			return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrPermissionDenied
 		}
 	}
-
-	err = b.StoreConfiguration(ctx, req, config)
+	err = StoreConfiguration[*Config](ctx, b, req, config, "")
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	return &logical.Response{Data: map[string]interface{}{
-		"config": config,
-	}}, nil
+	return &logical.Response{}, nil
 }
 
 func (b *BaseBackend) handleConfigRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	config, err := b.GetConfiguration(ctx, req)
+	config, err := GetConfiguration[*Config](ctx, b, req, "")
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
-	responseData := map[string]interface{}{ // Just rewrite here for control
-		"required_approvals": config.RequiredApprovals,
-		"require_reason":     config.RequireReason,
-		"approval_ttl":       config.ApprovalTTL.Seconds(),
-		"request_ttl":        config.RequestTTL.Seconds(),
-		"delete_after":       config.DeleteAfter.Seconds(),
+
+	responseObj := responses.ConfigResponse{
+		RequiredApprovals:    config.RequiredApprovals,
+		RequireJustification: config.RequireJustification,
+		// RequestTTL:           config.RequestTTL,
+		// DeleteAfter:          config.DeleteAfter,
+		// If I need seconds
+		RequestTTL:  config.RequestTTL.Seconds(),
+		DeleteAfter: config.DeleteAfter.Seconds(),
+	}
+
+	responseData, err := StructToMap(responseObj)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 
 	return &logical.Response{Data: responseData}, nil
