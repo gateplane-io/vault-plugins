@@ -46,7 +46,7 @@ layer for <i>Vault/OpenBao</i>
     - [Building](#building)
     - [Testing](#testing)
 - [4. 💬 Contact](#4--contact)
-  - [🚧 Contributing](#-contributing)
+  - [Community](#community)
   - [⚖️ License](#-license)
 
 <!--TOC-->
@@ -58,34 +58,37 @@ layer for <i>Vault/OpenBao</i>
 ## 1. 💡 Overview
 
 ### ❓ What is GatePlane?
-GatePlane is a project *made by Security Professionals for Security Professionals* to make time-based, conditional access management approachable and transparent.
+GatePlane is a project that makes time-based, conditional access management approachable and transparent, *made by Security Professionals for Security Professionals* .
 
-Gateplane implements Privileged Access Management (PAM) and Just-In-Time (JIT) access, helping tech groups and companies to give, revoke and monitor permissions across the whole organization. The ultimate goal is to solve problems people in tech organizations stumble upon frequently, such as:
+Gateplane implements *Privileged Access Management* (PAM) and *Just-In-Time* (JIT) access, helping tech groups and companies to give, revoke and monitor permissions across the whole organization.
+
+The ultimate goal is to solve problems people in tech organizations stumble upon frequently, such as:
 * **Developer**: "*I need to debug production but I don't have access*"
 * **IT**: “*I get around 60 requests for sensitive access per day, and I have to manually set them up and tear them down*”
 * **Security Officer**: “*I have no idea who has access to what after the last incident and the auditor comes next week*”
 * **Security Engineer**: “*Setting up this PAM solution will take forever and will change everything we know about our infrastructure*”
 
 It does so by using the Open-Source and battle-tested tools [Vault](https://developer.hashicorp.com/vault/docs) or [OpenBao](https://openbao.org/) as its underlying infrastructure,
-drawing from their *Authentication*, *Authorization*, *Integrations* and *Structured Logging* principles, avoiding to re-invent the wheel.
+drawing from their *Authentication*, *Authorization*, *Integrations* and *Auditing* principles, avoiding to re-invent the wheel.
 
-*GatePlane Community* comes **free of charge** and available for everyone to audit and contribute to it under the [*Elastic License v2*](./LICENSE).
+*GatePlane Community* comes **free of charge** and available for everyone to *use*, *audit* and *contribute* to, under the [*Elastic License v2*](./LICENSE).
 
-##### More about GatePlane can be found in its [Website]() (*under contruction* 🚧)
+##### More about GatePlane can be found in its [Website](gateplane.io)
 
 ### 🎯 Key Features
 
 * **Approval-Based Access**: Access is granted only if someone else approves of it
 * **Access that expires**: Every granted access has an expiration date, no exceptions
-* **Vast support of Integrations**: Supports Kubernetes, AWS/GCP/Azure, SSH, Databases and the whole suite of Vault/OpenBao Secret Engines, as well as JIT Okta Group Membership management
+* ***Vast* support of Integrations**: Supports *Kubernetes*, *AWS/GCP/Azure*, *SSH*, *Databases* (from *PostgreSQL* to *Elasticsearch*) and the [whole suite of *Vault/OpenBao Secret Engines*](https://developer.hashicorp.com/vault/integrations?components=database%2Csecrets-engine), as well as Just-In-Time *Okta Group Membership Management* drawing from the [150+ Okta Integrations](https://www.okta.com/integrations/)
 * [**WebUI to Request, Approve and Claim access**](https://app.gateplane.io) : All available accesses are listed and can be managed through a Web Application tied with your Vault/OpenBao instance
 * **Notifications**: When a user requests, approves or claims access, a Slack/Discord/MSTeams/*you-name-it* message is sent
-* 🚧 **Metrics**: Measurements on the friction relief, numbers of elevated accesses needed and statistics on mean-time-to-claim
+* **Metrics**: Measurements on the friction relief, numbers of elevated accesses needed and statistics on mean-time-to-claim
 
 ### ❔ Why GatePlane
-*GatePlane is a community-first project*.
 
 It makes *Just-In-Time* (JIT) *Privileged Access Management* (PAM) accessible to everyone through Open-Source tools and auditable code.
+
+Its *Zero-Knowledge* and *Self-Hostable* natute ensures that access is neither controlled, nor proxied by GatePlane, **keeping your organization's accesses and secrets strictly inside your infrastructure**.
 
 Our rationale is that trust on the market of PAM solutions is never really gained if auditability is not part of the equation. Also buzzword marketing, and vague promises that often lack technical ground are not in our line of work.
 
@@ -109,17 +112,17 @@ Each plugin is considered a *Gate*, that needs conditions in order to provide ti
 #### Policy Gate
 The *Policy Gate* plugin can utilize all Vault/OpenBao *Secret Engines* (see for: [Vault](https://developer.hashicorp.com/vault/docs/secrets)/[OpenBao](https://openbao.org/docs/secrets/)), providing a conditional access layer to all of them.
 
-This effectively means that AWS, Kubernetes, SSH or Database access configured through Vault/OpenBao can now
-be provided through a request/approval flow and also be expiring through configured TTLs.
+With that, *all AWS, Kubernetes, SSH or Database access configured through Vault/OpenBao can now
+be provided through a request/approval flow* and also be expiring through configured TTLs.
 
 #### Okta Group Gate
-The *Okta Group Gate* recreates the request/approval flow to gain expiring access to Okta Groups,
+The *Okta Group Gate* leverages the request/approval flow to gain expiring access to Okta Groups,
 for users that access Vault/OpenBao through Okta.
 
 The plugin reaches the Okta API through API credentials stored in Vault/OpenBao and
 adds the user requesting access to a configured Okta Group for a configured time duration.
 
-##### 🚧 API documentation for each of the plugins is provided [here](./docs/).
+##### API documentation for each of the plugins is provided [here](https://docs.gateplane.io).
 
 ##### Documentation on setting up the plugins is provided [below](#-how-to-install).
 
@@ -135,7 +138,7 @@ Additionally, the [GatePlane WebUI under `app.gateplane.io` domain](https://app.
 can be used by setting up your Vault / OpenBao instance, using the instructions provided [below](#-how-to-install).
 
 The **Team** and **Enterprise** packages are only used through the WebUI, and are tied to services
-hosted by GatePlane, such as Notifications and Metrics.
+hosted by GatePlane, such as *Notifications* and *Metrics*.
 
 #### Community Edition
 
@@ -152,7 +155,7 @@ hosted by GatePlane, such as Notifications and Metrics.
 * **Dedicated WebUI domain**: Access a pre-configured GatePlane WebUI under a custom domain (e.g: `<myorg>.app.gateplane.io`), allowing for security configurations (e.g: mTLS), Vault/OpenBao login integrations (e.g: Okta login, Userpass, etc) and Access Claim Integrations.
 * **Support**: Get support on designing your infrastructure access management with GatePlane
 
-* **Zero-Knowledge**: GatePlane infrastructure does only get non-sensitive metadata to provide the above features.
+* **Zero-Knowledge**: GatePlane infrastructure does only get non-sensitive metadata to provide the above features for *Team and Eneterprise* plans.
 
 **Your organization's access control *NEVER* depends on or is shared with GatePlane infrastructure**
 
@@ -184,7 +187,7 @@ Registering the `gateplane-policy-gate` plugin.
 ```bash
 vault plugin register -sha256=<SHA256 found in the 'checksums.txt'> \
     -version="<SemVer found in the Github Release>" \
-    auth \  # All GatePlane plugins are of type "auth"
+    secret \  # All GatePlane plugins are of type "secret"
     gateplane-policy-gate
 ```
 
@@ -198,7 +201,7 @@ In this case, the [GatePlane Setup Terraform](https://github.com/gateplane-io/te
 
 ```hcl
 module "gateplane_setup" {
-  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.0"
+  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.1"
 
   policy_gate_plugin = {
     filename = "gateplane-policy-gate"  // The name of the binary for Policy Gate
@@ -213,6 +216,8 @@ module "gateplane_setup" {
   }
 
   plugin_directory = "/etc/vault/plugins"   // The value provided in the 'plugin_directory' configuration key
+
+  create_ui_policy = true
 }
 ```
 
@@ -234,42 +239,54 @@ path "aws/prod/object-writer" {
 
 To create expiring Vault/OpenBao tokens of this policy, based on approvals, a *Gate* must be created using the Policy Gate plugin:
 ```bash
-vault enable gateplane-policy-gate -path auth/gateplane/aws-prod-object-writer
+vault enable gateplane-policy-gate -path gateplane/aws-prod-object-writer
 ```
-##### Note: The `auth/gateplane/aws-prod-object-writer` path is used for clarity. Any `auth/`-prefixed path can be used.
+##### Note: The `gateplane/aws-prod-object-writer` path is used for clarity - any path can be used.
 
-Then, configuring this Gate to grant access to the `aws-prod-object-writer` policy requires accessing the `/config` endpoint:
+Configuring the Gate manually:
+
 ```bash
-vault write auth/gateplane/aws-prod-object-writer/config \
-    policies=aws-prod-object-writer \  # multiple policies can be protected at once - separated by comma
-    required_approvals=1 \             # additional options can be provided
+vault write gateplane/aws-prod-object-writer/config \
+    required_approvals=1 \  # additional options can be provided
     require_reason=true
 ```
 
-With that, the `/request`, `/approve` and `/claim` endpoints of `auth/gateplane/aws-prod-object-writer` will be usable as in the [Usage Example](#usage-example).
+```bash
+vault write gateplane/aws-prod-object-writer/config/access \
+    policies=aws-prod-object-writer
+```
+
+```bash
+vault write gateplane/aws-prod-object-writer/config/api/vault \
+  approle_id="..."      # Set an approle that can manipulate Entities
+  approle_secret="..."
+```
+
+With that, the `/request`, `/approve` and `/claim` endpoints of `gateplane/aws-prod-object-writer` will be usable as in the [Usage Example](#usage-example).
 
 #### Enabling a Gate - With GatePlane Terraform modules
 
-The [Policy Gate Terraform module](https://github.com/gateplane-io/terraform-gateplane-policy-gate) simplifies the above task, also creating helper policies that allow access to `/request`, `/approve` and `/claim` endpoints, ready to be assigned to Vault/OpenBao Entities.
+The [Policy Gate Terraform module](https://github.com/gateplane-io/terraform-gateplane-policy-gate) simplifies the above task, also creating the AppRole needed and helper Policies that allow access to `/request`, `/approve` and `/claim` endpoints, ready to be assigned to Vault/OpenBao Entities.
 
 ```hcl
 module "gateplane_aws-prod-object-writer" {
   depends_on = [module.gateplane_setup] // the module registering the plugins
-  source     = "github.com/gateplane-io/terraform-gateplane-policy-gate?ref=0.1.0"
+  source     = "github.com/gateplane-io/terraform-gateplane-policy-gate?ref=1.0.0"
 
   name            = "aws-prod-object-writer"    // The name to be used in the endpoint and policies
   path_prefix     = "gateplane"                 // The path prefix
   endpoint_prefix = ""                          // A prefix for the endpoint
 
   // The Vault/OpenBao path to protect can be used directly
+  // circumventing the need to create the policy manually.
   protected_path_map = {
-    "auth/gateplane/aws-prod-object-writer" = ["read"]
+    "aws/prod/object-writer" = ["read"]
   }
 
   // The configuration provided to /config
   plugin_options = {
     "required_approvals" : 1,
-    "require_reason": true,
+    "require_justification": true,
   }
 }
 
@@ -284,24 +301,26 @@ output "policies" {
 }
 ```
 
-##### This module also adds capabilities to the `requestor` and `approver` policies so they can be used with [GatePlane WebUI](app.gateplane.io), through the `enable_ui` parameter.
-
 ### ▶️ Usage Example
 
 #### Requesting Access
-Vault/OpenBao Entities writing to the `auth/gateplane/aws-prod-object-writer/request` will create an access request:
+Vault/OpenBao Entities writing to the `gateplane/aws-prod-object-writer/request` will create an access request:
 ```bash
 $ VAULT_TOKEN="<requestor-token>" \
-    vault write auth/gateplane/aws-prod-object-writer/request \
+    vault write gateplane/aws-prod-object-writer/request \
         reason="I want to get in"  # Reason is configured as mandatory for this gate
-Key           Value
----           -----
-exp           2025-07-01T10:46:52.418873353Z
-iat           2025-07-01T09:46:52.418873353Z
-overwrite     false     # Whether a request by this entity has been already created
-reason        I want to get in
-request_id    5ec53023-d998-6b3d-f58f-49976f3b1af7 # The Entity ID of the Requestor
-status        pending   # status can be: pending / approved / active / expired
+Key                   Value
+---                   -----
+claim_ttl             30m
+deleted_after         1760859773
+exp                   1760776973
+iat                   1760773373
+justification         I want to get in
+num_of_approvals      0
+overwrite             false # Whether a request by this entity has been already created
+requestor_id          c542f5ab-1e4b-2479-f0a6-ef8b32a3c39e
+required_approvals    1
+status                pending # status can be: pending / approved / active / expired
 ```
 
 By design, each Requestor can have exactly one request against a Gate.
@@ -310,49 +329,28 @@ By design, each Requestor can have exactly one request against a Gate.
 Then the Approver can approve using the RequestID:
 ```bash
 $ VAULT_TOKEN="<approver-token>" \
-    vault write auth/gateplane/aws-prod-object-writer/approve \
+    vault write gateplane/aws-prod-object-writer/approve \
         request_id="5ec53023-d998-6b3d-f58f-49976f3b1af7"
-Key           Value
----           -----
-access_approved true
-exp             2025-07-01T10:20:00.326612898Z
-iat             2025-07-01T09:50:00.326612898Z
-message         access approved
-approval_id     5ec53023-d998-6b3d-f58f-49976f3b1af7:dbd64311-28e8-7e28-b1ac-1e5c9aa490e7:+
+Key       Value
+---       -----
+status    pending
 ```
 
-##### The Approver gets to know the RequestID either by an out-of-band communication, a LIST to the `/request` endpoint or the Notification Feature
+##### The Approver gets to know the RequestID either by an out-of-band communication, a LIST to the `/request` endpoint or the *Notification Feature*
 
 #### Claiming Access
-
-The Requestor is notified for the approval by polling the `/request` endpoint:
 ```bash
 $ VAULT_TOKEN="<requestor-token>" \
-    vault read auth/gateplane/aws-prod-object-writer/request
-Key           Value
----           -----
-exp           2025-07-01T10:46:52.418873353Z
-grant_code    b4608697-73d5-447d-84e2-e244c78b3165  # Generated once the request is approved
-iat           2025-07-01T09:46:52.418873353Z
-reason        I want to get in
-request_id    5ec53023-d998-6b3d-f58f-49976f3b1af7
-status        approved # The state changes to approved
+    vault write -force gateplane/aws-prod-object-writer/claim
+Key                  Value
+---                  -----
+lease_id             gateplane/aws-prod-object-writer/claim/h3hAUgVBoWMn6uc3vQ6CgEdp
+lease_duration       30m
+lease_renewable      false
+new_policies         [aws-prod-object-writer]
+previous_policies    [gateplane-aws-prod-object-writer-requestor]
+requestor_id         c542f5ab-1e4b-2479-f0a6-ef8b32a3c39e
 ```
-
-Using the `grant_code` against the `/claim` endpoint finally grants the Vault/OpenBao token:
-```bash
-$ VAULT_TOKEN="" \  # see the note
-    vault write auth/gateplane/aws-prod-object-writer/claim \
-     grant_code="b4608697-73d5-447d-84e2-e244c78b3165"
-Key               Value
----               -----
-token             s.raPGTZdARXdY0KvHcWSpp5wWZIHNT
-token_renewable   false
-# Some fields are omitted
-policies          ["aws-prod-object-writer"]
-```
-
-##### Endpoints that issue Vault/OpenBao tokens (like the Policy Gate's `/claim` endpoint) reject authenticated requests: https://github.com/hashicorp/vault/issues/6074.
 
 ### 🛠️ How to Build and Test
 
@@ -383,17 +381,15 @@ make test-infra
 
 ## 4. 💬 Contact
 
+You can always reach the Dev Team through [Email](mailto:maintainers@gateplane.io).
 
-### 🚧 Contributing
+### Community
 
+We truly believe in the power of the Community, and we appreciate every new member!
 
-<!-- ### Community -->
-
-<!--- ### Security Notes
-
-This is a security-first project. If you believe you have found a security issue in OpenBao, please responsibly disclose by contacting the maintainers:
-* a[at]b.com
- -->
+You can join us here:
+* [Slack](https://join.slack.com/t/gateplane-community/shared_invite/zt-3erzr2612-7Lhsx~cwpQ3kUvqcClIdiQ)
+* [Github Discussions](https://github.com/orgs/gateplane-io/discussions)
 
 ### ⚖️ License
 This project is licensed under the [Elastic License v2](https://www.elastic.co/licensing/elastic-license).
