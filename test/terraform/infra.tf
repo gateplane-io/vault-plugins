@@ -1,5 +1,6 @@
 module "infra" {
-  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.0"
+  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.1"
+  # source = "./../../../terraform-gateplane-setup"
 
   // To showcase the WebUI locally
   // Allows CORS and IFrames
@@ -30,16 +31,20 @@ module "infra" {
 // used by the tests
 module "mock" {
   depends_on = [module.infra]
-  source     = "github.com/gateplane-io/terraform-test-modules.git//gateplane-mock?ref=0.1.0"
+  source     = "github.com/gateplane-io/terraform-test-modules.git//gateplane-mock?ref=1.0.0"
+  # source     = "./../../../terraform-test-modules/gateplane-mock"
 
   name            = "mock"
   path_prefix     = ""
   endpoint_prefix = ""
+
+  lease_max_ttl = "3h"
 }
 
 module "access" {
   depends_on = [module.infra]
-  source     = "github.com/gateplane-io/terraform-gateplane-policy-gate?ref=0.1.0"
+  source     = "github.com/gateplane-io/terraform-gateplane-policy-gate?ref=1.0.0"
+  # source     = "./../../../terraform-gateplane-policy-gate"
 
   name            = "pgate"
   path_prefix     = ""
@@ -52,7 +57,8 @@ module "access" {
 
 module "okta" {
   depends_on = [module.infra]
-  source     = "github.com/gateplane-io/terraform-gateplane-okta-group-gate?ref=0.1.0"
+  source     = "github.com/gateplane-io/terraform-gateplane-okta-group-gate?ref=1.0.0"
+  # source     = "../../../terraform-gateplane-okta-group-gate"
 
   name            = "oktagate"
   path_prefix     = ""
@@ -73,7 +79,8 @@ module "okta" {
 }
 
 module "tokens" {
-  source = "github.com/gateplane-io/terraform-test-modules.git//tokens?ref=0.1.0"
+  source = "github.com/gateplane-io/terraform-test-modules.git//tokens?ref=1.0.0"
+  # source = "./../../../terraform-test-modules/tokens"
 
   entity_groups = {
     # To showcase the WebUI
@@ -84,6 +91,7 @@ module "tokens" {
         module.access.policy_names["approver"],
         module.okta.policy_names["requestor"],
         module.okta.policy_names["approver"],
+        module.infra.ui_policy,
       ]
     },
 
