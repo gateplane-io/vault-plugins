@@ -6,13 +6,13 @@ from scenarios import (
     approval_scenario,
 )
 
+import time
+
 
 class TestMock:
     "Mock Plugin tests"
 
     def test_endpoint_access(self, setup_vault_resources):
-        # logger.debug(setup_vault_resources)
-        # logger.debug(VAULT_URLS)
         tf_output = setup_vault_resources  # just rename
         token = get_token_for(tf_output, gatekeeper=False)
         gtkpr_token = get_token_for(tf_output, gatekeeper=True)
@@ -53,17 +53,44 @@ class TestMock:
         tf_output = setup_vault_resources  # just rename
         user = get_token_for(tf_output, gatekeeper=False)
 
-        configure_plugin("mock", {"require_reason": True})
+        configure_plugin("mock", {"require_justification": True})
         status, output = vault_api_request(
             VAULT_URLS["mock"]["request"], token=user, method="POST"
         )
         print(output)
-        assert "required" in output["errors"][0].lower()
+        assert "requires a justification" in output["errors"][0].lower()
         assert 403 == status
-        configure_plugin("mock", {"require_reason": False})
+        configure_plugin("mock", {"require_justification": False})
 
     def test_e2e_zero_approvals(self, setup_vault_resources):
         tf_output = setup_vault_resources  # just rename
         user = get_token_for(tf_output, gatekeeper=False)
 
         approval_scenario("mock", user, [])
+
+    def test_e2e_auto_revocation_status(self, setup_vault_resources):
+        tf_output = setup_vault_resources  # just rename
+        user = get_token_for(tf_output, gatekeeper=False)
+        gtkpr = get_token_for(tf_output, gatekeeper=True)
+
+        configure_plugin(
+            "mock",
+            {"lease": "1s"},
+            url=VAULT_URLS["mock"]["config/lease"],
+        )
+
+        request = approval_scenario("mock", user, [gtkpr])
+
+        print(request)
+        assert "active" == request["status"]
+        time.sleep(1.1)
+        status, request_raw = vault_api_request(
+            VAULT_URLS["mock"]["request"], token=user, method="GET"
+        )
+        assert "revoked" == request_raw["data"]["status"]
+        # Reset TTL
+        configure_plugin(
+            "mock",
+            {"lease": "10m"},
+            url=VAULT_URLS["mock"]["config/lease"],
+        )
