@@ -12,38 +12,168 @@ package okta_group_gate
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/okta/okta-sdk-golang/v5/okta"
 
 	"github.com/gateplane-io/vault-plugins/internal/base"
-
-	models "github.com/gateplane-io/vault-plugins/pkg/models/okta-group-gate"
+	clients "github.com/gateplane-io/vault-plugins/internal/clients"
+	clientConfig "github.com/gateplane-io/vault-plugins/internal/clients/config"
+	"github.com/gateplane-io/vault-plugins/internal/utils"
 )
+
+/* Storage Keys */
+const ConfigAPIOktaKey = "config/api/okta"
+const ConfigAccessKey = "config/access"
 
 type Backend struct {
 	*base.BaseBackend
-	oktaClient *okta.APIClient
+	Mutex      sync.Mutex
+	OktaClient *okta.APIClient
 }
 
 func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationRequest) error {
-	b.BaseBackend.BaseMutex.Lock()
-	defer b.BaseBackend.BaseMutex.Unlock()
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
 	b.Logger().Info("Initializing plugin configuration")
 
-	// hadle defaults like this
-	// https://github.com/jfrog/vault-plugin-secrets-artifactory/blob/master/backend.go#L86
-	defaultConfig := models.NewDefaultConfig()
-	b.StoreConfigurationToStorage(ctx, req.Storage, &defaultConfig)
-
-	if b.oktaClient == nil {
-		// try if there is already an api config in place
-		// b.oktaClient = createOktaClient(fetch-config)
-		defaultOktaApiConfig := NewDefaultOktaApiConfig()
-		b.StoreOktaApiConfigurationToStorage(ctx, req.Storage, &defaultOktaApiConfig)
+	// Initialize the base
+	err := b.BaseBackend.Initialize(ctx, req)
+	if err != nil {
+		b.Logger().Error("Could not initialize Plugin Base")
+		return err
 	}
-	b.Logger().Info("Vault auth plugin initialized with default configuration",
-		"configuration", defaultConfig,
+
+	configAccess := NewConfigAccess()
+	_, err = base.StoreConfigurationToStorageIfNotPresent[*ConfigAccess](ctx,
+		b.BaseBackend, req.Storage, &configAccess, ConfigAccessKey,
+	)
+
+	config := clientConfig.NewConfigApiOkta()
+	oktaExists, err := base.StoreConfigurationToStorageIfNotPresent[*clientConfig.ConfigApiOkta](ctx,
+		b.BaseBackend, req.Storage, &config, ConfigAPIOktaKey,
+	)
+	if err != nil {
+		b.Logger().Error("[-] Could not initialize Okta API Configuration")
+		return err
+	}
+
+	b.BaseBackend.ClaimArray = utils.NewCallbackArray(
+		(func(ctx context.Context, requ *logical.Request, ownerID string) (map[string]interface{}, error) { // Append
+			err := b.EnsureOktaAPI(ctx, req.Storage)
+			if err != nil {
+				return nil, err
+			}
+
+			cfg, err := base.GetConfigurationFromStorage[*ConfigAccess](ctx,
+				b.BaseBackend, req.Storage, ConfigAccessKey,
+			)
+			if err != nil {
+				return nil, err
+			}
+			oktaConfig, err := base.GetConfigurationFromStorage[*clientConfig.ConfigApiOkta](ctx,
+				b.BaseBackend, req.Storage, ConfigAPIOktaKey,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			groupName := cfg.GroupName
+			if groupName == "" {
+				return nil, fmt.Errorf("Could not retrieve Okta Group details from API")
+			}
+
+			groupID := cfg.GroupID
+			oktaUserID, err := b.GetOktaUserID(ctx, oktaConfig, ownerID)
+			if err != nil && oktaUserID != "" {
+				return nil, err
+			}
+
+			err = oktaAddToGroup(ctx, b.OktaClient, groupID, oktaUserID)
+			if err != nil {
+				return nil, err
+			}
+
+			return map[string]interface{}{
+				"okta_group_id": groupID,
+				"okta_user_id":  oktaUserID,
+			}, nil
+		}),
+		(func(ctx context.Context, requ *logical.Request, ownerID string, internalData map[string]interface{}) error { // Append
+			err := b.EnsureOktaAPI(ctx, req.Storage)
+			if err != nil {
+				return err
+			}
+
+			groupID := internalData["okta_group_id"].(string)
+			oktaUserID := internalData["okta_user_id"].(string)
+
+			err = oktaRemoveFromGroup(ctx, b.OktaClient, groupID, oktaUserID)
+			if err != nil {
+				return err
+			}
+			return err
+		}),
+	)
+	b.Logger().Info("GatePlane Okta Group Gate initialized with default configuration",
+		"path", ConfigAPIOktaKey,
+		"OktaURL", config.OrgUrl,
+		"OktaConfigExists", oktaExists,
 	)
 	return nil
+}
+
+func (b *Backend) EnsureOktaAPI(ctx context.Context, storage logical.Storage) error {
+
+	cfg, err := base.GetConfigurationFromStorage[*clientConfig.ConfigApiOkta](ctx,
+		b.BaseBackend, storage, ConfigAPIOktaKey,
+	)
+	if err != nil {
+		return err
+	}
+
+	if cfg.ApiToken != "" {
+		oktaClient, err := clients.NewOktaClient(cfg.OrgUrl, cfg.ApiToken)
+		if err != nil {
+			b.Logger().Error("[-] Could not create Okta Client")
+			return err
+		}
+		b.OktaClient = oktaClient
+	}
+	return nil
+}
+
+func (b *Backend) GetOktaUserID(ctx context.Context, config *clientConfig.ConfigApiOkta, entityID string) (string, error) {
+
+	view := b.System()
+	entity, err := view.EntityInfo(entityID)
+	if err != nil {
+		return "", err
+	}
+
+	entityMeta := entity.GetMetadata()
+	oktaUserId, exists := entityMeta[config.OktaEntityKey]
+	if exists {
+		return oktaUserId, nil
+	}
+
+	for _, alias := range entity.Aliases {
+		if alias.MountAccessor != config.OktaOIDCMountAccessor {
+			continue
+		}
+		oktaUserId = alias.Name
+	}
+	if oktaUserId != "" {
+		return oktaUserId, nil
+	}
+	b.Logger().Error("[-] Could not retrieve Okta User ID from Vault/OpenBao Entity",
+		"EntityID", entityID,
+		"EntityMetadata", entityMeta,
+		"OktaOIDCMountAccessor", config.OktaOIDCMountAccessor,
+		"OktaEntityKey", config.OktaEntityKey,
+	)
+
+	return "", fmt.Errorf("Could not retrieve Okta User ID from Vault/OpenBao Entity")
 }

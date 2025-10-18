@@ -8,19 +8,13 @@
 // Use, modification, and redistribution permitted under the terms of the license,
 // except for providing this software as a commercial service or product.
 
-package okta_group_gate
+package config
 
 import (
-	"context"
 	"fmt"
-	"time"
 )
 
-/*
-Configuration of Direct Okta API Access
-*/
-
-type OktaApiConfig struct {
+type ConfigApiOkta struct {
 	OrgUrl   string `json:"org_url"`
 	ApiToken string `json:"api_token"`
 
@@ -33,14 +27,14 @@ type OktaApiConfig struct {
 	OktaOIDCMountAccessor string `json:"auth_mount_accessor"`
 }
 
-func NewDefaultOktaApiConfig() OktaApiConfig {
-	return OktaApiConfig{
+func NewConfigApiOkta() ConfigApiOkta {
+	return ConfigApiOkta{
 		// Default when 'user_claim=sub' in OIDC
 		OktaEntityKey: "name",
 	}
 }
 
-func (c *OktaApiConfig) SetConfigurationKey(key string, value interface{}) error {
+func (c *ConfigApiOkta) SetConfigurationKey(key string, value interface{}) error {
 	switch key {
 	case "org_url":
 		if v, ok := value.(string); ok {
@@ -70,18 +64,4 @@ func (c *OktaApiConfig) SetConfigurationKey(key string, value interface{}) error
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}
 	return nil
-}
-
-func (config *OktaApiConfig) Test(userID string, groupID string) error {
-
-	client, err := createOktaClient(config)
-	if err != nil {
-		return err
-	}
-
-	ttl := 1 * time.Second
-
-	err = oktaAddRemoveFromGroup(context.TODO(), client, ttl, groupID, userID)
-
-	return err
 }
