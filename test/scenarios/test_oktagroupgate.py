@@ -1,4 +1,4 @@
-from scenarios import get_token_for, approval_scenario
+from scenarios import get_token_for, approval_scenario, configure_plugin, VAULT_URLS
 import os
 import requests
 import time
@@ -31,29 +31,35 @@ class TestOktaGroupGate:
         tf_output = setup_vault_resources  # just rename
         user = get_token_for(tf_output, type="okta")
 
+        # Configure small lease time
+        configure_plugin(
+            "oktagate",
+            {"lease": "1s"},
+            url=VAULT_URLS["oktagate"]["config/lease"],
+        )
+
         # Group is empty at first
         members = get_okta_group_members()
         assert len(members) == 0
 
         # No Gatekeeper Tokens: sets 'required_approvals' to 0
-        data = approval_scenario("oktagate", user, [], authenticate_claim=True)
+        data = approval_scenario("oktagate", user, [])
+        print(data)
 
         # The user has to be there
         members = get_okta_group_members()
         assert data["okta_user_id"] in members
 
         # Wait for the TTL (which is set to 2 seconds)
-        # The PeriodicFunc runs every minute by default:
-        # https://pkg.go.dev/github.com/hashicorp/vault/sdk@v0.18.0/framework#Backend.PeriodicFunc
-        # https://github.com/hashicorp/vault/blob/main/vault/core.go#L1256
-        # So wait max 1 minute divided in 5s re-checks
-        for t in range(1, 12):
-            # The Group must be empty again
-            members = get_okta_group_members()
-            if len(members) == 0:
-                continue
-            time.sleep(5)
+        time.sleep(2)
 
         # The Group must be empty again
         members = get_okta_group_members()
         assert len(members) == 0
+
+        # Configure small lease time
+        configure_plugin(
+            "oktagate",
+            {"lease": "5m"},
+            url=VAULT_URLS["oktagate"]["config/lease"],
+        )
