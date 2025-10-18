@@ -21,11 +21,11 @@ import (
 	"github.com/hashicorp/vault/sdk/plugin"
 
 	"github.com/gateplane-io/vault-plugins/internal/base"
-	okta_gate "github.com/gateplane-io/vault-plugins/internal/okta-group-gate"
+	oggate "github.com/gateplane-io/vault-plugins/internal/okta-group-gate"
 )
 
 // set at buildtime with "-ldflags -X main.Version=..."
-var Version = "0.0.0"
+var Version = "v0.0.0"
 
 func BackendFactory(ctx context.Context, c *logical.BackendConfig) (logical.Backend, error) {
 	b := Backend(c)
@@ -35,28 +35,30 @@ func BackendFactory(ctx context.Context, c *logical.BackendConfig) (logical.Back
 	return b, nil
 }
 
-func Backend(c *logical.BackendConfig) *okta_gate.Backend {
+func Backend(c *logical.BackendConfig) *oggate.Backend {
 	var baseBackend base.BaseBackend
-	bFinal := &okta_gate.Backend{BaseBackend: &baseBackend}
+	bFinal := &oggate.Backend{BaseBackend: &baseBackend}
 
 	baseBackend.Backend = &framework.Backend{
-		BackendType:    logical.TypeCredential,
-		Help:           "Vault/OpenBao Plugin for approval-based access to Okta Groups",
+		BackendType:    logical.TypeLogical,
+		Help:           "[OktaGroupGate] Vault/OpenBao Plugin for conditional access Okta Groups",
 		RunningVersion: Version,
 		Paths: []*framework.Path{
 			// Provided by Base package
+			base.PathConfig(&baseBackend),
+			base.PathConfigLease(&baseBackend),
+
 			base.PathRequest(&baseBackend),
 			base.PathApprove(&baseBackend),
+			base.PathClaim(&baseBackend),
 
-			// Custom Claim endpoint
-			okta_gate.PathClaim(bFinal),
-			okta_gate.PathConfig(bFinal),
-			okta_gate.PathOktaApiConfig(bFinal),
-			okta_gate.PathOktaApiTest(bFinal),
+			// Provided by Okta Group Gate
+			oggate.PathConfigApiOkta(bFinal),
+			oggate.PathConfigAccess(bFinal),
 		},
-		// Used to Ensure Okta Users are removed from Groups
-		PeriodicFunc: bFinal.CleanExpiredMemberships,
-		// Clean: bFinal.CleanMemberships,
+		Secrets: []*framework.Secret{
+			base.ClaimSecret(&baseBackend),
+		},
 	}
 
 	bFinal.Logger().Debug("Plugin initialized")

@@ -12,8 +12,9 @@ package okta_group_gate
 
 import (
 	"context"
-	"github.com/okta/okta-sdk-golang/v5/okta"
 	"time"
+
+	"github.com/okta/okta-sdk-golang/v5/okta"
 )
 
 func oktaAddToGroup(ctx context.Context, client *okta.APIClient, groupId string, userId string) error {
@@ -51,17 +52,4 @@ func getGroupNameById(ctx context.Context, client *okta.APIClient, groupId strin
 	}
 
 	return *group.Profile.Name, nil
-}
-
-func createOktaClient(oktaApiConfig *OktaApiConfig) (*okta.APIClient, error) {
-
-	config, err := okta.NewConfiguration(
-		okta.WithOrgUrl(oktaApiConfig.OrgUrl),
-		okta.WithToken(oktaApiConfig.ApiToken),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return okta.NewAPIClient(config), nil
 }
