@@ -14,13 +14,13 @@ import (
 	"context"
 	// "encoding/json"
 	"fmt"
-	// "time"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 
-	models "github.com/gateplane-io/vault-plugins/pkg/models/base"
+	"github.com/gateplane-io/vault-plugins/pkg/responses"
 )
 
 // Path for user to request access
@@ -28,9 +28,14 @@ func PathRequest(b *BaseBackend) *framework.Path {
 	return &framework.Path{
 		Pattern: "request/?",
 		Fields: map[string]*framework.FieldSchema{
-			"reason": {
+			"justification": {
 				Type:        framework.TypeString,
-				Description: "Reason of requested access",
+				Description: "Reason/Objective for requesting access",
+				Required:    false,
+			},
+			"ttl": {
+				Type:        framework.TypeDurationSecond,
+				Description: "Duration of the requested access",
 				Required:    false,
 			},
 		},
@@ -40,12 +45,19 @@ func PathRequest(b *BaseBackend) *framework.Path {
 			logical.ReadOperation:   b.handleRequestRead,
 		},
 
+		DisplayAttrs: &framework.DisplayAttributes{
+			OperationPrefix: "gateplane-base",
+			OperationSuffix: "AccessRequest",
+		},
+
 		HelpSynopsis: "Creates AccessRequests and checks its status",
-		HelpDescription: `This endpoint can create AccessRequests for a requestor (issuer of 'update'),
+		HelpDescription: `This endpoint can create AccessRequests for a requestor (using 'update'),
 		check the AccessRequest created by the requestor (using 'read')
 		and list all AccessRequests created by this backend (using 'list').
 
-		The 'reason' parameter can be mandatory if set so in '/config' endpoint.
+		The 'justification' parameter can be mandatory if 'require_justification' is set under '/config' endpoint.
+
+		The 'ttl' parameter is the duration that the requested access will be in effect (must be below 'lease_max')
 		`,
 	}
 }
@@ -56,50 +68,71 @@ func (b *BaseBackend) handleRequestUpdate(ctx context.Context, req *logical.Requ
 		return logical.ErrorResponse("Token has no EntityID assigned"), logical.ErrPermissionDenied
 	}
 
-	reason := d.Get("reason").(string)
+	justification := d.Get("justification").(string)
+	ttl := time.Duration(d.Get("ttl").(int))
 
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	exists, _ := b.getRequest(ctx, req, entityID)
+	exists, _ := b.GetRequest(ctx, req, entityID)
 	overwrite := exists != nil
 
-	config, err := b.GetConfiguration(ctx, req)
+	// IF exists and status: active, Revoke before re-creating
+	config, err := GetConfiguration[*Config](ctx, b, req, ConfigKey)
 	if err != nil {
-		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 
-	requireReason := config.RequireReason
-
-	if requireReason && len(strings.TrimSpace(reason)) == 0 {
-		return logical.ErrorResponse("A 'reason' parameter is required by this BaseBackend"), logical.ErrPermissionDenied
+	configLease, err := GetConfiguration[*ConfigLease](ctx, b, req, ConfigLeaseKey)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 
 	b.Logger().Info("[+] Access Requested",
 		"EntityID", entityID,
 		"PreviousRequestExistence", overwrite,
-		"Reason", reason,
-		"ReasonRequired", requireReason,
-		"ReasonNoWhitspaceLength", len(strings.TrimSpace(reason)),
+		"Justification", justification,
+		"JustificationRequired", config.RequireJustification,
+		"JustificationNoWhitspaceLength", len(strings.TrimSpace(justification)),
+		"ClaimTTL", ttl,
 	)
 
-	accessRequest := models.NewAccessRequest(config, entityID, reason)
+	accessRequest, err := NewAccessRequest(config, configLease, entityID, ttl, justification)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrPermissionDenied
+	}
 
-	err = b.storeRequest(ctx, req, &accessRequest)
+	b.Logger().Info("[+] Access Request Created",
+		"Object", accessRequest,
+	)
+
+	err = b.StoreRequest(ctx, req, accessRequest)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	return &logical.Response{
-		Data: map[string]interface{}{
-			"overwrite":  overwrite,
-			"iat":        accessRequest.CreatedAt,
-			"exp":        accessRequest.Expiration,
-			"reason":     accessRequest.Reason,
-			"status":     accessRequest.Status.String(),
-			"request_id": accessRequest.ID,
-		},
-	}, nil
+	responseObj := responses.AccessRequestCreationResponse{
+		Overwrite:     overwrite,
+		Justification: accessRequest.Justification,
+		OwnerID:       accessRequest.OwnerID,
+
+		CreatedAt:  accessRequest.CreatedAt.Unix(),
+		Expiration: accessRequest.Expiration.Unix(),
+		Deletion:   accessRequest.Deletion.Unix(),
+
+		RequiredApprovals: accessRequest.RequiredApprovals,
+		Status:            UncapitalizeFirstLetter(accessRequest.Status.String()),
+		NumOfApprovals:    len(accessRequest.Approvals),
+
+		ClaimTTL: accessRequest.ClaimTTL,
+	}
+
+	responseData, err := StructToMap(responseObj)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
+	}
+
+	return &logical.Response{Data: responseData}, nil
 }
 
 func (b *BaseBackend) handleRequestRead(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -112,32 +145,38 @@ func (b *BaseBackend) handleRequestRead(ctx context.Context, req *logical.Reques
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	accessRequest, err := b.getRequest(ctx, req, requestID)
+	accessRequest, err := b.GetRequest(ctx, req, requestID)
 	if err != nil {
-		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 	if accessRequest == nil {
-		return &logical.Response{Data: map[string]interface{}{}}, nil
+		return &logical.Response{Warnings: []string{"Request does not exist"}}, nil
 	}
 
-	data := map[string]interface{}{
-		"iat":        accessRequest.CreatedAt,
-		"exp":        accessRequest.Expiration,
-		"reason":     accessRequest.Reason,
-		"status":     accessRequest.Status.String(),
-		"request_id": accessRequest.ID,
+	responseObj := responses.AccessRequestResponse{
+		Justification: accessRequest.Justification,
+		OwnerID:       accessRequest.OwnerID,
+
+		CreatedAt:  accessRequest.CreatedAt.Unix(),
+		Expiration: accessRequest.Expiration.Unix(),
+		Deletion:   accessRequest.Deletion.Unix(),
+
+		RequiredApprovals: accessRequest.RequiredApprovals,
+		Status:            UncapitalizeFirstLetter(accessRequest.Status.String()),
+		NumOfApprovals:    len(accessRequest.Approvals),
+
+		ClaimTTL:       accessRequest.ClaimTTL,
+		ClaimCreatedAt: accessRequest.ClaimCreatedAt.Unix(),
+
+		HaveApproved: accessRequest.isApprovedBy(entityID),
 	}
 
-	// This check is always true now, yet,
-	// there will be the possibility to query AccessRequests not belonging to oneself
-	if entityID == requestID {
-		// Only reveal the GrantCode if the Requestor is the Caller
-		data["grant_code"] = accessRequest.GrantCode
+	responseData, err := StructToMap(responseObj)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
 
-	return &logical.Response{
-		Data: data,
-	}, nil
+	return &logical.Response{Data: responseData}, nil
 }
 
 func (b *BaseBackend) handleRequestList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
@@ -146,36 +185,40 @@ func (b *BaseBackend) handleRequestList(ctx context.Context, req *logical.Reques
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	config, err := b.GetConfiguration(ctx, req)
-	if err != nil {
-		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
-	}
-	requiredApprovals := config.RequiredApprovals
-
 	resultsFull := map[string]interface{}{}
 	results := []string{}
 
-	accessRequests, err := b.listRequests(ctx, req)
+	accessRequests, err := b.ListRequests(ctx, req)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	var numOfvalidApprovals int
 	for _, accessRequest := range accessRequests {
-		numOfvalidApprovals = validApprovalsNum(accessRequest)
-		_, haveApproved := accessRequest.Approvals[entityID]
+		results = append(results, accessRequest.OwnerID)
 
-		results = append(results, accessRequest.ID)
-		resultsFull[accessRequest.ID] = map[string]interface{}{
-			"request_id":          accessRequest.ID,
-			"iat":                 accessRequest.CreatedAt,
-			"exp":                 accessRequest.Expiration,
-			"reason":              accessRequest.Reason,
-			"num_approvals":       numOfvalidApprovals,
-			"remaining_approvals": requiredApprovals - numOfvalidApprovals,
-			"status":              accessRequest.Status.String(),
-			"have_approved":       haveApproved,
+		responseObj := responses.AccessRequestResponse{
+			Justification: accessRequest.Justification,
+			OwnerID:       accessRequest.OwnerID,
+
+			CreatedAt:  accessRequest.CreatedAt.Unix(),
+			Expiration: accessRequest.Expiration.Unix(),
+			Deletion:   accessRequest.Deletion.Unix(),
+
+			RequiredApprovals: accessRequest.RequiredApprovals,
+			Status:            UncapitalizeFirstLetter(accessRequest.Status.String()),
+			NumOfApprovals:    len(accessRequest.Approvals),
+
+			ClaimTTL:       accessRequest.ClaimTTL,
+			ClaimCreatedAt: accessRequest.ClaimCreatedAt.Unix(),
+
+			HaveApproved: accessRequest.isApprovedBy(entityID),
 		}
+
+		responseData, err := StructToMap(responseObj)
+		if err != nil {
+			return logical.ErrorResponse(fmt.Sprint(err)), nil
+		}
+		resultsFull[accessRequest.OwnerID] = responseData
 	}
 
 	return logical.ListResponseWithInfo(
