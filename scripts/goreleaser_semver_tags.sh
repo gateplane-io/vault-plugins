@@ -14,16 +14,14 @@
 # them in GoReleaser as env vars:
 # https://goreleaser.com/cookbooks/set-a-custom-git-tag/
 
-release_tags=$(git for-each-ref refs/tags/*-release \
-	--sort=-taggerdate \
-	--format='%(refname)' \
-	--count=2 \
-| cut -d '/' -f 3 \
-| sort -r \
-| tr '\n' ' ')
+release_tags=$(git tag \
+	| grep -E '^[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}-release$' \
+	| sort -t. -k1,1nr -k2,2nr -k3,3nr  \
+	| head -2 \
+	| tr '\n' ' ')
 
 
-read GORELEASER_PREVIOUS_TAG GORELEASER_CURRENT_TAG < <(echo $release_tags)
+read GORELEASER_CURRENT_TAG GORELEASER_PREVIOUS_TAG < <(echo $release_tags)
 
 echo "
 export GORELEASER_CURRENT_TAG=$GORELEASER_CURRENT_TAG
