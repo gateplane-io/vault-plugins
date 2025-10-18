@@ -15,7 +15,7 @@
 # https://goreleaser.com/cookbooks/set-a-custom-git-tag/
 
 release_tags=$(git for-each-ref refs/tags/*-release \
-	--sort=-refname \
+	--sort=-taggerdate \
 	--format='%(refname)' \
 	--count=2 \
 | cut -d '/' -f 3 \
@@ -23,7 +23,7 @@ release_tags=$(git for-each-ref refs/tags/*-release \
 | tr '\n' ' ')
 
 
-read GORELEASER_CURRENT_TAG GORELEASER_PREVIOUS_TAG < <(echo $release_tags)
+read GORELEASER_PREVIOUS_TAG GORELEASER_CURRENT_TAG < <(echo $release_tags)
 
 echo "
 export GORELEASER_CURRENT_TAG=$GORELEASER_CURRENT_TAG
