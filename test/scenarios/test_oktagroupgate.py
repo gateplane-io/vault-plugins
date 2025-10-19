@@ -47,11 +47,12 @@ class TestOktaGroupGate:
         print(data)
 
         # The user has to be there
+        time.sleep(0.1)
         members = get_okta_group_members()
-        assert data["okta_user_id"] in members
+        assert data["claim"]["data"]["okta_user_id"] in members
 
-        # Wait for the TTL (which is set to 2 seconds)
-        time.sleep(2)
+        # Wait for the TTL (which is set to 1 second)
+        time.sleep(1.1)
 
         # The Group must be empty again
         members = get_okta_group_members()

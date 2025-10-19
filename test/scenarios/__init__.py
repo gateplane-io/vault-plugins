@@ -61,7 +61,7 @@ def vault_api_request(url, data={}, token=None, method="GET"):
 
     return (
         response.status_code,
-        response.json(),
+        response.json() if response.text else {},
     )  # Return the response as a JSON dictionary
 
 
@@ -130,7 +130,7 @@ def approval_scenario(plugin, user_token, gtkpr_tokens):
         method="POST",
         token=user_token,
     )
-    print(claim_output)
+    # print(claim_output)
     assert 200 == status
 
     status, output = vault_api_request(
@@ -140,4 +140,4 @@ def approval_scenario(plugin, user_token, gtkpr_tokens):
     assert output["data"]["status"] == "active"
 
     assert claim_subkey in claim_output[claim_key]
-    return {**claim_output["data"], **output[claim_key]}
+    return {"claim": claim_output, "request": output[claim_key]}
