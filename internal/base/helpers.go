@@ -12,6 +12,7 @@ package base
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // Function to convert a struct to a map[string]interface{}
@@ -30,4 +31,16 @@ func StructToMap(obj interface{}) (map[string]interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// Function to check if two dates are close within a given duration
+func areDatesClose(date1, date2 time.Time, threshold time.Duration) bool {
+	// Calculate the difference between the two dates
+	diff := date1.Sub(date2)
+	if diff < 0 {
+		diff = -diff // Ensure positive difference
+	}
+
+	// Check if the difference is within the threshold
+	return diff <= threshold
 }
