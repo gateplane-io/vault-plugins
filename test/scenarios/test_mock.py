@@ -1,4 +1,6 @@
 from scenarios import (
+    VAULT_API,
+    VAULT_TOKEN_ROOT,
     VAULT_URLS,
     vault_api_request,
     get_token_for,
@@ -68,7 +70,7 @@ class TestMock:
 
         approval_scenario("mock", user, [])
 
-    def test_e2e_auto_revocation_status(self, setup_vault_resources):
+    def test_e2e_auto_expiration_status(self, setup_vault_resources):
         tf_output = setup_vault_resources  # just rename
         user = get_token_for(tf_output, gatekeeper=False)
         gtkpr = get_token_for(tf_output, gatekeeper=True)
@@ -82,11 +84,45 @@ class TestMock:
         request = approval_scenario("mock", user, [gtkpr])
 
         print(request)
-        assert "active" == request["status"]
+        assert "active" == request["request"]["status"]
         time.sleep(1.1)
         status, request_raw = vault_api_request(
             VAULT_URLS["mock"]["request"], token=user, method="GET"
         )
+        assert "expired" == request_raw["data"]["status"]
+        # Reset TTL
+        configure_plugin(
+            "mock",
+            {"lease": "10m"},
+            url=VAULT_URLS["mock"]["config/lease"],
+        )
+
+    def test_e2e_revocation(self, setup_vault_resources):
+        tf_output = setup_vault_resources  # just rename
+        user = get_token_for(tf_output, gatekeeper=False)
+        gtkpr = get_token_for(tf_output, gatekeeper=True)
+
+        configure_plugin(
+            "mock",
+            {"lease": "10m"},
+            url=VAULT_URLS["mock"]["config/lease"],
+        )
+
+        request = approval_scenario("mock", user, [gtkpr])
+
+        print(request)
+        assert "active" == request["request"]["status"]
+        status, _ = vault_api_request(
+            f"{VAULT_API}/sys/leases/revoke",
+            token=VAULT_TOKEN_ROOT,
+            method="POST",
+            data={"lease_id": request["claim"]["lease_id"]},
+        )
+        assert 204 == status
+        status, request_raw = vault_api_request(
+            VAULT_URLS["mock"]["request"], token=user, method="GET"
+        )
+
         assert "revoked" == request_raw["data"]["status"]
         # Reset TTL
         configure_plugin(
