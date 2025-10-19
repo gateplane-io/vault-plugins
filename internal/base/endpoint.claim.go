@@ -110,18 +110,22 @@ func (b *BaseBackend) handleClaim(ctx context.Context, req *logical.Request, d *
 
 func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 
+	entityID := req.EntityID
 	requestorID := req.Secret.InternalData["requestor_id"].(string)
 
-	b.Logger().Warn("[+] Revoke AccessRequest",
+	b.Logger().Info("[*] Revoke AccessRequest",
 		"RequestorID", requestorID,
+		"EntityID", entityID,
 		"LeaseExpiration", req.Secret.LeaseOptions.ExpirationTime(),
 		"TTL", req.Secret.TTL,
+		"Revoker", req.DisplayName,
 	)
 
 	accessRequest, err := b.GetRequest(ctx, req, requestorID)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrNotFound
 	}
+	now := time.Now()
 
 	if accessRequest.Status == Active {
 		removed, err := b.ClaimArray.Remove(ctx, req, accessRequest.OwnerID, req.Secret.InternalData)
@@ -132,11 +136,33 @@ func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Re
 			return logical.ErrorResponse(fmt.Sprint(err)), nil
 		}
 		accessRequest.Status = Revoked
+		/*
+			If the revocation happended by a nameless token
+			and close to the real expiration (2s) we assume that
+			the request is made by Vault/OpenBao core.
+			This sets the request as Expired
+			(Revoked is when it is manually revoked)
+		*/
+		if entityID == "" &&
+			req.DisplayName == "" &&
+			areDatesClose(
+				now,
+				req.Secret.LeaseOptions.ExpirationTime(),
+				time.Second*2) {
+			accessRequest.Status = Expired
+		}
 		err = b.StoreRequest(ctx, req, accessRequest)
 		if err != nil {
 			return logical.ErrorResponse(fmt.Sprint(err)), nil
 		}
 	}
+	b.Logger().Info("[+] AccessRequest Revoked",
+		"RequestorID", requestorID,
+		"EntityID", entityID,
+		"LeaseExpiration", req.Secret.LeaseOptions.ExpirationTime(),
+		"Status", accessRequest.Status,
+		"TTL", req.Secret.TTL,
+	)
 
 	// Empty response
 	return nil, nil //&logical.Response{}
