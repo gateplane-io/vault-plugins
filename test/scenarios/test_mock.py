@@ -130,3 +130,31 @@ class TestMock:
             {"lease": "10m"},
             url=VAULT_URLS["mock"]["config/lease"],
         )
+
+    def test_e2e_auto_abandoned_status(self, setup_vault_resources):
+        tf_output = setup_vault_resources  # just rename
+        user = get_token_for(tf_output, gatekeeper=False)
+
+        configure_plugin(
+            "mock",
+            {"request_ttl": "1s"},
+            url=VAULT_URLS["mock"]["config"],
+        )
+        status, request_raw = vault_api_request(
+            VAULT_URLS["mock"]["request"], token=user, method="POST"
+        )
+        print(request_raw)
+        assert "pending" == request_raw["data"]["status"]
+        time.sleep(1.1)
+        # No approval after the Request TTL has passed
+        status, request_raw = vault_api_request(
+            VAULT_URLS["mock"]["request"], token=user, method="GET"
+        )
+        assert "abandoned" == request_raw["data"]["status"]
+
+        # Reset TTL
+        configure_plugin(
+            "mock",
+            {"request_ttl": "1800s"},
+            url=VAULT_URLS["mock"]["config"],
+        )
