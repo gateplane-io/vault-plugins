@@ -62,12 +62,19 @@ func (b *BaseBackend) GetRequestFromStorage(ctx context.Context, storage logical
 	}
 
 	requestDirty := false
-	// Check ALL expirations
-	if accessRequest.Status != Expired && requestHasExpired(accessRequest) {
-		accessRequest.Status = AccessRequestStatus(Expired)
+	// Set terminal states in case of expiration
+	if (accessRequest.Status != Expired &&
+		accessRequest.Status != Revoked &&
+		accessRequest.Status != Abandoned) && requestHasExpired(accessRequest) {
+		if accessRequest.Status == Pending {
+			accessRequest.Status = AccessRequestStatus(Abandoned)
+		} else {
+			accessRequest.Status = AccessRequestStatus(Expired)
+		}
 		requestDirty = true
-		b.Logger().Info("[*] Request set to Expired",
+		b.Logger().Info("[*] Request status set",
 			"RequestorID", requestID,
+			"Status", accessRequest.Status,
 			"Expiration", accessRequest.Expiration,
 		)
 	}
