@@ -16,6 +16,8 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 )
 
 func PathApprove(b *BaseBackend) *framework.Path {
@@ -69,7 +71,7 @@ func (b *BaseBackend) handleApprove(ctx context.Context, req *logical.Request, d
 		return &logical.Response{Warnings: []string{"Request does not exist"}}, nil
 	}
 
-	if accessRequest.Status != Pending {
+	if accessRequest.Status != models.Pending {
 		return logical.ErrorResponse(
 			fmt.Sprintf(
 				"Cannot Approve an AccessRequest that is not in 'pending' state (state: %s)",

@@ -8,33 +8,21 @@
 // Use, modification, and redistribution permitted under the terms of the license,
 // except for providing this software as a commercial service or product.
 
-package base
+package models
 
 import (
 	"encoding/json"
 	"fmt"
 	"strings"
 	"unicode"
-	// "errors"
 )
 
-// AccessRequestStatus
-
-func CapitalizeFirstLetter(s string) string {
+func capitalizeFirstLetter(s string) string {
 	if len(s) == 0 {
 		return s // Return the empty string as is
 	}
 	runes := []rune(s)                   // Convert to runes to handle Unicode
 	runes[0] = unicode.ToUpper(runes[0]) // Capitalize the first rune
-	return string(runes)
-}
-
-func UncapitalizeFirstLetter(s string) string {
-	if len(s) == 0 {
-		return s // Return the empty string as is
-	}
-	runes := []rune(s)                   // Convert to runes to handle Unicode
-	runes[0] = unicode.ToLower(runes[0]) // Capitalize the first rune
 	return string(runes)
 }
 
@@ -66,7 +54,7 @@ func (s *AccessRequestStatus) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	statusString = CapitalizeFirstLetter(statusString)
+	statusString = capitalizeFirstLetter(statusString)
 	for i, validStatus := range AccessRequestStatusStrings {
 		if statusString == validStatus {
 			*s = AccessRequestStatus(i)

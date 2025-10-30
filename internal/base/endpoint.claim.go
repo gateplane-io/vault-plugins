@@ -17,6 +17,8 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 )
 
 func PathClaim(b *BaseBackend) *framework.Path {
@@ -54,11 +56,11 @@ func (b *BaseBackend) handleClaim(ctx context.Context, req *logical.Request, d *
 		return &logical.Response{Warnings: []string{"Request does not exist"}}, nil
 	}
 
-	if accessRequest.Status != Approved {
+	if accessRequest.Status != models.Approved {
 		return logical.ErrorResponse(
 			fmt.Sprintf(
 				"Cannot Claim an AccessRequest that is not in 'approved' state (state: %s, approvals %d/%d)",
-				accessRequest.Status.String(),
+				accessRequest.Status,
 				len(accessRequest.Approvals),
 				accessRequest.RequiredApprovals,
 			),
@@ -127,7 +129,7 @@ func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Re
 	}
 	now := time.Now()
 
-	if accessRequest.Status == Active {
+	if accessRequest.Status == models.Active {
 		removed, err := b.ClaimArray.Remove(ctx, req, accessRequest.OwnerID, req.Secret.InternalData)
 		if err != nil {
 			return logical.ErrorResponse(fmt.Sprint(err)), nil
@@ -135,7 +137,7 @@ func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Re
 		if !removed {
 			return logical.ErrorResponse(fmt.Sprint(err)), nil
 		}
-		accessRequest.Status = Revoked
+		accessRequest.Status = models.Revoked
 		/*
 			If the revocation happended by a nameless token
 			and close to the real expiration (2s) we assume that
@@ -149,7 +151,7 @@ func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Re
 				now,
 				req.Secret.LeaseOptions.ExpirationTime(),
 				time.Second*2) {
-			accessRequest.Status = Expired
+			accessRequest.Status = models.Expired
 		}
 		err = b.StoreRequest(ctx, req, accessRequest)
 		if err != nil {

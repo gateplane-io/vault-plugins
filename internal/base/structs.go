@@ -14,7 +14,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	// "errors"
+
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 )
 
 // AccessRequest
@@ -30,8 +31,8 @@ type AccessRequest struct {
 	ClaimCreatedAt time.Time     `json:"claim_iat"`
 	ClaimTTL       time.Duration `json:"claim_ttl"` // provided by the requestor
 
-	Status    AccessRequestStatus  `json:"status"`
-	Approvals map[string]*Approval `json:"approvals"`
+	Status    models.AccessRequestStatus `json:"status"`
+	Approvals map[string]*Approval       `json:"approvals"`
 }
 
 func NewAccessRequest(config *Config, configLease *ConfigLease, ownerID string, ttl time.Duration, justification string) (*AccessRequest, error) {
@@ -50,7 +51,7 @@ func NewAccessRequest(config *Config, configLease *ConfigLease, ownerID string, 
 	now := time.Now()
 
 	return &AccessRequest{
-		Status: Pending,
+		Status: models.Pending,
 
 		OwnerID:    ownerID,
 		CreatedAt:  now,
@@ -78,7 +79,7 @@ type Approval struct {
 }
 
 func (req *AccessRequest) Approve(approverID string) (*Approval, bool, error) {
-	if req.Status != Pending {
+	if req.Status != models.Pending {
 		return nil, false, fmt.Errorf(
 			"The AccessRequest cannot be approved, as it is in '%s' state",
 			req.Status,
@@ -87,7 +88,7 @@ func (req *AccessRequest) Approve(approverID string) (*Approval, bool, error) {
 
 	lastApproval := len(req.Approvals) == req.RequiredApprovals
 	if lastApproval {
-		req.Status = Approved
+		req.Status = models.Approved
 	}
 
 	now := time.Now()
@@ -106,7 +107,7 @@ func (req *AccessRequest) isApprovedBy(approverID string) bool {
 }
 
 func (req *AccessRequest) Claim() error {
-	if req.Status != Approved {
+	if req.Status != models.Approved {
 		return fmt.Errorf(
 			"The AccessRequest cannot be claimed, as it is in '%s' state",
 			req.Status,
@@ -114,7 +115,7 @@ func (req *AccessRequest) Claim() error {
 	}
 
 	now := time.Now()
-	req.Status = Active
+	req.Status = models.Active
 	req.ClaimCreatedAt = now
 
 	return nil
