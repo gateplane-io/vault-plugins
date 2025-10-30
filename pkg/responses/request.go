@@ -12,6 +12,8 @@ package responses
 
 import (
 	"time"
+
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 )
 
 type AccessRequestCreationResponse struct {
@@ -23,7 +25,7 @@ type AccessRequestCreationResponse struct {
 	Justification     string `json:"justification"`
 	RequiredApprovals int    `json:"required_approvals"`
 
-	Status string `json:"status"`
+	Status models.AccessRequestStatus `json:"status"`
 
 	NumOfApprovals int           `json:"num_of_approvals"`
 	Overwrite      bool          `json:"overwrite"`
@@ -39,7 +41,7 @@ type AccessRequestResponse struct {
 	Justification     string `json:"justification"`
 	RequiredApprovals int    `json:"required_approvals"`
 
-	Status string `json:"status"`
+	Status models.AccessRequestStatus `json:"status"`
 
 	NumOfApprovals int  `json:"num_of_approvals"`
 	HaveApproved   bool `json:"have_approved"`

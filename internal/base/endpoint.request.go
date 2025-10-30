@@ -121,7 +121,7 @@ func (b *BaseBackend) handleRequestUpdate(ctx context.Context, req *logical.Requ
 		Deletion:   accessRequest.Deletion.Unix(),
 
 		RequiredApprovals: accessRequest.RequiredApprovals,
-		Status:            UncapitalizeFirstLetter(accessRequest.Status.String()),
+		Status:            accessRequest.Status,
 		NumOfApprovals:    len(accessRequest.Approvals),
 
 		ClaimTTL: accessRequest.ClaimTTL,
@@ -162,7 +162,7 @@ func (b *BaseBackend) handleRequestRead(ctx context.Context, req *logical.Reques
 		Deletion:   accessRequest.Deletion.Unix(),
 
 		RequiredApprovals: accessRequest.RequiredApprovals,
-		Status:            UncapitalizeFirstLetter(accessRequest.Status.String()),
+		Status:            accessRequest.Status,
 		NumOfApprovals:    len(accessRequest.Approvals),
 
 		ClaimTTL:       accessRequest.ClaimTTL,
@@ -205,7 +205,7 @@ func (b *BaseBackend) handleRequestList(ctx context.Context, req *logical.Reques
 			Deletion:   accessRequest.Deletion.Unix(),
 
 			RequiredApprovals: accessRequest.RequiredApprovals,
-			Status:            UncapitalizeFirstLetter(accessRequest.Status.String()),
+			Status:            accessRequest.Status,
 			NumOfApprovals:    len(accessRequest.Approvals),
 
 			ClaimTTL:       accessRequest.ClaimTTL,

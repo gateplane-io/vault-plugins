@@ -16,6 +16,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/vault/sdk/logical"
+
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 )
 
 /* ======================== CRUD Request*/
@@ -63,13 +65,13 @@ func (b *BaseBackend) GetRequestFromStorage(ctx context.Context, storage logical
 
 	requestDirty := false
 	// Set terminal states in case of expiration
-	if (accessRequest.Status != Expired &&
-		accessRequest.Status != Revoked &&
-		accessRequest.Status != Abandoned) && requestHasExpired(accessRequest) {
-		if accessRequest.Status == Pending {
-			accessRequest.Status = AccessRequestStatus(Abandoned)
+	if (accessRequest.Status != models.Expired &&
+		accessRequest.Status != models.Revoked &&
+		accessRequest.Status != models.Abandoned) && requestHasExpired(accessRequest) {
+		if accessRequest.Status == models.Pending {
+			accessRequest.Status = models.Abandoned
 		} else {
-			accessRequest.Status = AccessRequestStatus(Expired)
+			accessRequest.Status = models.Expired
 		}
 		requestDirty = true
 		b.Logger().Info("[*] Request status set",
@@ -100,9 +102,9 @@ func (b *BaseBackend) GetRequestFromStorage(ctx context.Context, storage logical
 	}
 
 	// Handle Approval Status
-	if accessRequest.Status == Pending &&
+	if accessRequest.Status == models.Pending &&
 		requestIsApproved(accessRequest) {
-		accessRequest.Status = Approved
+		accessRequest.Status = models.Approved
 		requestDirty = true
 	}
 	if requestDirty {
