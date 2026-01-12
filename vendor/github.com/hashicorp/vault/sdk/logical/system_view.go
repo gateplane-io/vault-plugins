@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2016, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package logical
@@ -318,4 +318,15 @@ func (d StaticSystemView) DeregisterRotationJob(_ context.Context, _ *rotation.R
 
 func (d StaticSystemView) DownloadExtractVerifyPlugin(_ context.Context, _ *pluginutil.PluginRunner) error {
 	return errors.New("DownloadExtractVerifyPlugin is not implemented in StaticSystemView")
+}
+
+// PluginLicenseUtil defines the functions needed to request License and PluginEnv
+// by the plugin licensing under github.com/hashicorp/vault-licensing
+// This only should be used by the plugin to get the license and plugin environment
+type PluginLicenseUtil interface {
+	// License returns the raw license of the running Vault instance
+	License() (string, error)
+
+	// PluginEnv returns Vault environment information used by plugins
+	PluginEnv(context.Context) (*PluginEnvironment, error)
 }
