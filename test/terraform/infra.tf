@@ -55,6 +55,7 @@ module "access" {
   }
 }
 
+/*
 module "okta" {
   depends_on = [module.infra]
   source     = "github.com/gateplane-io/terraform-gateplane-okta-group-gate?ref=1.0.0"
@@ -77,6 +78,7 @@ module "okta" {
     api_token = var.okta_mount_api_token
   }
 }
+*/
 
 module "tokens" {
   source = "github.com/gateplane-io/terraform-test-modules.git//tokens?ref=1.0.0"
@@ -89,8 +91,8 @@ module "tokens" {
       "policies" = [
         module.access.policy_names["requestor"],
         module.access.policy_names["approver"],
-        module.okta.policy_names["requestor"],
-        module.okta.policy_names["approver"],
+        # module.okta.policy_names["requestor"],
+        # module.okta.policy_names["approver"],
         module.infra.ui_policy,
       ]
     },
@@ -110,13 +112,13 @@ module "tokens" {
         module.mock.policy_names["approver"],
       ]
     },
-    "okta" = {
-      "quantity" = 1,
-      "policies" = [
-        module.okta.policy_names["requestor"],
-        module.okta.policy_names["approver"],
-      ]
-    }
+    # "okta" = {
+    #   "quantity" = 1,
+    #   "policies" = [
+    #     module.okta.policy_names["requestor"],
+    #     module.okta.policy_names["approver"],
+    #   ]
+    # }
   }
 }
 
