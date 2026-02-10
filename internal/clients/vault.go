@@ -101,10 +101,7 @@ func IsAuthenticatedVault(ctx context.Context, client *api.Client) (bool, error)
 	}
 
 	// token/lookup-self works even for accessor-based checks; use ReadWithContext for context support
-	secret, err := client.Logical().ReadWithContext(ctx, "auth/token/lookup-self")
-	if err != nil {
-		return false, fmt.Errorf("token lookup failed: %w", err)
-	}
+	secret, _ := client.Logical().ReadWithContext(ctx, "auth/token/lookup-self")
 	if secret == nil || secret.Data == nil {
 		return false, nil
 	}
@@ -123,15 +120,12 @@ func EnsureAuthenticationVault(ctx context.Context, client *api.Client, roleID, 
 		return fmt.Errorf("vault client is nil")
 	}
 
-	ok, err := IsAuthenticatedVault(ctx, client)
-	if err != nil {
-		return fmt.Errorf("authentication check failed: %w", err)
-	}
+	ok, _ := IsAuthenticatedVault(ctx, client)
 	if ok {
 		return nil
 	}
 
-	_, err = LoginWithAppRole(ctx, client, roleID, secretID, mount)
+	_, err := LoginWithAppRole(ctx, client, roleID, secretID, mount)
 	if err != nil {
 		return fmt.Errorf("approle login failed: %w", err)
 	}
