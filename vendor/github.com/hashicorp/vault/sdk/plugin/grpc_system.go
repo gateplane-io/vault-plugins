@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2016, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package plugin
@@ -34,6 +34,11 @@ var _ logical.SystemView = &gRPCSystemViewClient{}
 
 type gRPCSystemViewClient struct {
 	client pb.SystemViewClient
+}
+
+func (s *gRPCSystemViewClient) GetConsumptionBillingManager() logical.ConsumptionBillingManager {
+	// Not implemented on pluginbackend
+	return nil
 }
 
 func (s *gRPCSystemViewClient) DefaultLeaseTTL() time.Duration {
@@ -249,6 +254,7 @@ func (s *gRPCSystemViewClient) RegisterRotationJob(ctx context.Context, req *rot
 			MountPoint:       req.MountPoint,
 			Path:             req.ReqPath,
 			RotationSchedule: req.RotationSchedule,
+			RotationPolicy:   req.RotationPolicy,
 
 			// on the side outbound from the plugin, we convert duration to seconds, so seconds get sent over the wire
 			RotationWindow: int64(req.RotationWindow.Seconds()),
@@ -510,6 +516,7 @@ func (s *gRPCSystemViewServer) RegisterRotationJob(ctx context.Context, req *pb.
 		MountPoint:       req.Job.MountPoint,
 		ReqPath:          req.Job.Path,
 		RotationSchedule: req.Job.RotationSchedule,
+		RotationPolicy:   req.Job.RotationPolicy,
 		// on the side inbound to vault, we convert seconds back to time.Duration
 		// Note: this value is seconds (as per the outbound client call, despite being int64)
 		// The field is int64 because of gRPC reasons, not time.Duration reasons
