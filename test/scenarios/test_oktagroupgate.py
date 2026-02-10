@@ -1,7 +1,10 @@
-from scenarios import get_token_for, approval_scenario, configure_plugin, VAULT_URLS
 import os
-import requests
 import time
+
+import pytest
+import requests
+
+from scenarios import VAULT_URLS, approval_scenario, configure_plugin, get_token_for
 
 OKTA_API_KEY = os.getenv("OKTA_API_KEY")
 OKTA_ORG = os.getenv("OKTA_ORG")
@@ -27,6 +30,10 @@ def get_okta_group_members():
 class TestOktaGroupGate:
     "Okta Group Gate Plugin tests"
 
+    @pytest.mark.skip(
+        reason="""The Okta Org is deactivated. Another to be created to test
+        new changes in Okta Group Gate"""
+    )
     def test_e2e_okta_group_membership(self, setup_vault_resources):
         tf_output = setup_vault_resources  # just rename
         user = get_token_for(tf_output, type="okta")
