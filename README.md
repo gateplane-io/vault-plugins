@@ -397,7 +397,6 @@ You can always reach the Dev Team through [Email](mailto:maintainers@gateplane.i
 We truly believe in the power of the Community, and we appreciate every new member!
 
 You can join us here:
-* [Slack](https://join.slack.com/t/gateplane-community/shared_invite/zt-3erzr2612-7Lhsx~cwpQ3kUvqcClIdiQ)
 * [Github Discussions](https://github.com/orgs/gateplane-io/discussions)
 
 ### ⚖️ License
