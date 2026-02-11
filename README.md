@@ -73,13 +73,13 @@ drawing from their *Authentication*, *Authorization*, *Integrations* and *Auditi
 
 *GatePlane Community* comes **free of charge** and available for everyone to *use*, *audit* and *contribute* to, under the [*Elastic License v2*](./LICENSE).
 
-##### More about GatePlane can be found in its [Website](gateplane.io)
+##### More about GatePlane can be found in its [Website](https://gateplane.io)
 
 ### 🎯 Key Features
 
 * **Approval-Based Access**: Access is granted only if someone else approves of it
 * **Access that expires**: Every granted access has an expiration date, no exceptions
-* ***Vast* support of Integrations**: Supports *Kubernetes*, *AWS/GCP/Azure*, *SSH*, *Databases* (from *PostgreSQL* to *Elasticsearch*) and the [whole suite of *Vault/OpenBao Secret Engines*](https://developer.hashicorp.com/vault/integrations?components=database%2Csecrets-engine), as well as Just-In-Time *Okta Group Membership Management* drawing from the [150+ Okta Integrations](https://www.okta.com/integrations/)
+* ***Vast* support of Integrations**: Supports *Kubernetes*, *AWS/GCP/Azure*, *SSH*, *Databases* (from *PostgreSQL* to *Elasticsearch*) and the [whole suite of *Vault/OpenBao Secrets Engines*](https://developer.hashicorp.com/vault/integrations?components=database%2Csecrets-engine), as well as Just-In-Time *Okta Group Membership Management* drawing from the [150+ Okta Integrations](https://www.okta.com/integrations/)
 * [**WebUI to Request, Approve and Claim access**](https://app.gateplane.io) : All available accesses are listed and can be managed through a Web Application tied with your Vault/OpenBao instance
 * **Notifications**: When a user requests, approves or claims access, a Slack/Discord/MSTeams/*you-name-it* message is sent
 * **Metrics**: Measurements on the friction relief, numbers of elevated accesses needed and statistics on mean-time-to-claim
@@ -90,9 +90,9 @@ It makes *Just-In-Time* (JIT) *Privileged Access Management* (PAM) accessible to
 
 Its *Zero-Knowledge* and *Self-Hostable* natute ensures that access is neither controlled, nor proxied by GatePlane, **keeping your organization's accesses and secrets strictly inside your infrastructure**.
 
-Our rationale is that trust on the market of PAM solutions is never really gained if auditability is not part of the equation. Also buzzword marketing, and vague promises that often lack technical ground are not in our line of work.
+Our rationale is that trust on the market of PAM solutions is never really gained if transparency is not part of the equation. Also buzzword marketing, and vague promises that often lack technical ground are not in our line of work.
 
-Our mission is enabling everyone to provide these guarantees to their organization without closed-source software, unclear security requirements, opaque components in their threat model and tying their sensitive access to SaaS systems they do not control. All this with direct and honest communication.
+Our mission is enabling everyone to provide these guarantees to their organization without closed-source software, unclear security requirements, opaque components in their threat model and tying their sensitive access to SaaS vendor-locks they do not control. All this with direct and honest communication.
 
 ### 🔍 This Repository
 This repository contains a series of *Vault/OpenBao Plugins* (see for: [Vault](https://developer.hashicorp.com/vault/docs/plugins)/[OpenBao](https://openbao.org/docs/plugins/)) that enable Vault/OpenBao to act as an Access Control Plane, providing *conditional access* to resources.
@@ -110,7 +110,7 @@ The plugins currently included:
 Each plugin is considered a *Gate*, that needs conditions in order to provide time-limited access to the requesting users. *Conditions* can be approvals by a number of different users and providing a reason for requesting access. Time-To-Live (TTL) is enforced depending on the type of access provided.
 
 #### Policy Gate
-The *Policy Gate* plugin can utilize all Vault/OpenBao *Secret Engines* (see for: [Vault](https://developer.hashicorp.com/vault/docs/secrets)/[OpenBao](https://openbao.org/docs/secrets/)), providing a conditional access layer to all of them.
+The *Policy Gate* plugin can utilize all Vault/OpenBao *Secrets Engines* (see for: [Vault](https://developer.hashicorp.com/vault/docs/secrets)/[OpenBao](https://openbao.org/docs/secrets/)), providing a conditional access layer to all of them.
 
 With that, *all AWS, Kubernetes, SSH or Database access configured through Vault/OpenBao can now
 be provided through a request/approval flow* and also be expiring through configured TTLs.
@@ -119,8 +119,8 @@ be provided through a request/approval flow* and also be expiring through config
 The *Okta Group Gate* leverages the request/approval flow to gain expiring access to Okta Groups,
 for users that access Vault/OpenBao through Okta.
 
-The plugin reaches the Okta API through API credentials stored in Vault/OpenBao and
-adds the user requesting access to a configured Okta Group for a configured time duration.
+The plugin reaches the Okta API with API credentials stored in Vault/OpenBao and
+adds the user requesting access to a configured Okta Group for a set time duration.
 
 ##### API documentation for each of the plugins is provided [here](https://docs.gateplane.io).
 
@@ -137,8 +137,9 @@ and it is allowed to modify to suit your needs, under the terms of [*Elastic Lic
 Additionally, the [GatePlane WebUI under `app.gateplane.io` domain](https://app.gateplane.io)
 can be used by setting up your Vault / OpenBao instance, using the instructions provided [below](#-how-to-install).
 
-The **Team** and **Enterprise** packages are only used through the WebUI, and are tied to services
-hosted by GatePlane, such as *Notifications* and *Metrics*.
+The **Team** and **Enterprise** packages provide services hosted by GatePlane,
+such as *Notifications* and *Metrics*, custom domains, WebUI integrations for automated Cloud Service Provider access,
+Crypto Wallets and other External Services.
 
 #### Community Edition
 
@@ -153,11 +154,12 @@ hosted by GatePlane, such as *Notifications* and *Metrics*.
 * **Notification Service**: Get notified for each *access request*, *approval*, *claim* or *revokation* on your organization's messaging app
 * **Metrics Service**: Identify friction points, most used accesses and critical activity windows
 * **Dedicated WebUI domain**: Access a pre-configured GatePlane WebUI under a custom domain (e.g: `<myorg>.app.gateplane.io`), allowing for security configurations (e.g: mTLS), Vault/OpenBao login integrations (e.g: Okta login, Userpass, etc) and Access Claim Integrations.
+* **WebUI integrations**: Claiming conditional access to specific use-cases, such as Crypto Wallets
 * **Support**: Get support on designing your infrastructure access management with GatePlane
 
 * **Zero-Knowledge**: GatePlane infrastructure does only get non-sensitive metadata to provide the above features for *Team and Eneterprise* plans.
 
-**Your organization's access control *NEVER* depends on or is shared with GatePlane infrastructure**
+**Your organization's access control ***NEVER*** depends on or is shared with GatePlane infrastructure**
 
 ## 3. 💻 Installation / Getting Started
 
@@ -201,7 +203,7 @@ In this case, the [GatePlane Setup Terraform](https://github.com/gateplane-io/te
 
 ```hcl
 module "gateplane_setup" {
-  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.1"
+  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.4.0"
 
   policy_gate_plugin = {
     filename = "gateplane-policy-gate"  // The name of the binary for Policy Gate
@@ -215,13 +217,18 @@ module "gateplane_setup" {
     sha256   = "4355a..."                   // The SHA256 checksum found in the 'checksums.txt'
   }
 
-  plugin_directory = "/etc/vault/plugins"   // The value provided in the 'plugin_directory' configuration key
-
   create_ui_policy = true
+
+  // Allows Cross-Origin Resource Sharing (CORS)
+  // to WebUIs to GatePlane WebUI
+  url_origins = [
+    "https://<your-instance>",
+    "https://app.gateplane.io"
+  ]
 }
 ```
 
-##### This module can also be used to set Vault/OpenBao instance's CORS headers to [`app.gateplane.io`](app.gateplane.io), through the `domains` parameter.
+##### This module can also be used to set Vault/OpenBao instance's CORS headers to [`app.gateplane.io`](app.gateplane.io), through the `url_origins` parameter.
 
 #### Enabling a Gate - Manually
 
@@ -232,7 +239,7 @@ In that case, a Vault/OpenBao policy must exist (e.g: `aws-prod-object-writer`) 
 
 `aws-prod-object-writer.hcl`
 ```hcl
-path "aws/prod/object-writer" {
+path "aws/prod/creds/object-writer" {
     capabilities = ["read"]
 }
 ```
@@ -280,7 +287,7 @@ module "gateplane_aws-prod-object-writer" {
   // The Vault/OpenBao path to protect can be used directly
   // circumventing the need to create the policy manually.
   protected_path_map = {
-    "aws/prod/object-writer" = ["read"]
+    "aws/prod/creds/object-writer" = ["read"]
   }
 
   // The configuration provided to /config
@@ -351,6 +358,8 @@ new_policies         [aws-prod-object-writer]
 previous_policies    [gateplane-aws-prod-object-writer-requestor]
 requestor_id         c542f5ab-1e4b-2479-f0a6-ef8b32a3c39e
 ```
+
+The requestor's Entity Policies now include `aws-prod-object-writer` until the lease is active (while it is not expired or revoked). The requestor finally can use `vault read aws/prod/creds/object-writer` to issue personalized, temporary AWS credentials.
 
 ### 🛠️ How to Build and Test
 
