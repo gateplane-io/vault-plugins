@@ -336,8 +336,8 @@ By design, each Requestor can have exactly one request against a Gate.
 Then the Approver can approve using the RequestID:
 ```bash
 $ VAULT_TOKEN="<approver-token>" \
-    vault write gateplane/aws-prod-object-writer/approve \
-        request_id="5ec53023-d998-6b3d-f58f-49976f3b1af7"
+    vault write -force \
+    gateplane/aws-prod-object-writer/approve/5ec53023-d998-6b3d-f58f-49976f3b1af7
 Key       Value
 ---       -----
 status    pending
