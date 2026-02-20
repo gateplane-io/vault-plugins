@@ -74,7 +74,7 @@ func (a AccessRequest) Equals(b AccessRequest) bool {
 
 // Approval
 type Approval struct {
-	OwnerID   string    `json:"owner_id"`
+	OwnerID   string    `json:"requestor_id"`
 	CreatedAt time.Time `json:"iat"`
 }
 

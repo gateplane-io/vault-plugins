@@ -22,7 +22,7 @@ import (
 
 func PathApprove(b *BaseBackend) *framework.Path {
 	return &framework.Path{
-		Pattern: "approve",
+		Pattern: "approve/(?P<requestor_id>[^/]+)/?",
 		Fields: map[string]*framework.FieldSchema{
 			"requestor_id": {
 				Type:        framework.TypeString,
@@ -32,6 +32,7 @@ func PathApprove(b *BaseBackend) *framework.Path {
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: b.handleApprove,
+			logical.ListOperation:   b.handleApproveList,
 		},
 		HelpSynopsis: "Approves the AccessRequest created by the provided RequestorID",
 		HelpDescription: `This endpoint approves AccessRequests.
@@ -100,4 +101,43 @@ func (b *BaseBackend) handleApprove(ctx context.Context, req *logical.Request, d
 			"status": accessRequest.Status,
 		},
 	}, nil
+}
+
+func (b *BaseBackend) handleApproveList(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+
+	requestorID := d.Get("requestor_id").(string)
+	// if !ok {
+	// 	return logical.ErrorResponse(fmt.Sprint(ok)), nil
+	// }
+	if requestorID == "" {
+		return logical.ErrorResponse("Listing approvals requires a 'requestor_id'"), logical.ErrPermissionDenied
+	}
+
+	b.BaseMutex.Lock()
+	defer b.BaseMutex.Unlock()
+
+	accessRequest, err := b.GetRequest(ctx, req, requestorID)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
+	}
+
+	if accessRequest == nil {
+		return &logical.Response{Warnings: []string{"Request does not exist"}}, nil
+	}
+
+	keys := make([]string, 0, len(accessRequest.Approvals))
+	for approval := range accessRequest.Approvals {
+		keys = append(keys, approval)
+	}
+
+	// Use this instead of ListResponseWithInfo,
+	// as it automatically serializes:
+	// accessRequest.Approvals
+	return &logical.Response{
+		Data: map[string]interface{}{
+			"keys":     keys,
+			"key_info": accessRequest.Approvals,
+		},
+	}, nil
+
 }
