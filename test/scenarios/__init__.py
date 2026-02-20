@@ -1,8 +1,8 @@
 import logging
-import requests
-
 import random
 import string
+
+import requests
 
 # Configure logging
 logging.basicConfig(
@@ -112,10 +112,9 @@ def approval_scenario(plugin, user_token, gtkpr_tokens):
         assert output["data"]["status"] == "pending"
 
         status, output = vault_api_request(
-            VAULT_URLS[plugin]["approve"],
+            f"{VAULT_URLS[plugin]['approve']}/{requestor_id}",
             token=gtkpr_token,
             method="POST",
-            data={"requestor_id": requestor_id},
         )
         assert 200 == status
 

@@ -1,14 +1,14 @@
+import time
+
 from scenarios import (
     VAULT_API,
     VAULT_TOKEN_ROOT,
     VAULT_URLS,
-    vault_api_request,
-    get_token_for,
-    configure_plugin,
     approval_scenario,
+    configure_plugin,
+    get_token_for,
+    vault_api_request,
 )
-
-import time
 
 
 class TestMock:
@@ -155,6 +155,49 @@ class TestMock:
         # Reset TTL
         configure_plugin(
             "mock",
-            {"request_ttl": "1800s"},
+            {"request_ttl": "1800s", "required_approvals": 2},
             url=VAULT_URLS["mock"]["config"],
         )
+
+    def test_approve_list(self, setup_vault_resources):
+        tf_output = setup_vault_resources  # just rename
+        token = get_token_for(tf_output, gatekeeper=False)
+        gtkpr_token = get_token_for(tf_output, gatekeeper=True)
+
+        status, output = vault_api_request(
+            VAULT_URLS["mock"]["request"], token=token, method="POST"
+        )
+        assert 200 == status
+
+        status, output = vault_api_request(
+            VAULT_URLS["mock"]["request"], token=token, method="GET"
+        )
+        assert 200 == status
+        request_id = output["data"]["requestor_id"]
+
+        status, output = vault_api_request(
+            f"{VAULT_URLS['mock']['approve']}/{request_id}",
+            token=gtkpr_token,
+            method="LIST",
+        )
+
+        print(output)
+        # assert output
+        # assert 204 == status
+
+        status, output = vault_api_request(
+            f"{VAULT_URLS['mock']['approve']}/{request_id}",
+            token=gtkpr_token,
+            method="POST",
+        )
+
+        assert 200 == status
+
+        status, output = vault_api_request(
+            f"{VAULT_URLS['mock']['approve']}/{request_id}",
+            token=gtkpr_token,
+            method="LIST",
+        )
+
+        assert "keys" in output["data"]
+        assert 200 == status
