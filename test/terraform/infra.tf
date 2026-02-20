@@ -1,10 +1,10 @@
 module "infra" {
-  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.2.1"
+  source = "github.com/gateplane-io/terraform-gateplane-setup?ref=0.4.0"
   # source = "./../../../terraform-gateplane-setup"
 
   // To showcase the WebUI locally
   // Allows CORS and IFrames
-  domains = ["*"]
+  url_origins = ["*"]
 
   mock_plugin = {
     filename = "gateplane-mock"
@@ -19,19 +19,18 @@ module "infra" {
   }
 
   policy_gate_plugin = {
-    filename = "gateplane-policy-gate"
-    version  = var.plugin_test_version
-    sha256   = filesha256("${path.module}/../../dist/policy-gate_linux_amd64_v1/gateplane-policy-gate")
+    filename       = "gateplane-policy-gate"
+    version        = var.plugin_test_version
+    sha256         = filesha256("${path.module}/../../dist/policy-gate_linux_amd64_v1/gateplane-policy-gate")
+    approle_policy = "gateplane-policy-gate-policy"
   }
-
-  plugin_directory = "/etc/vault/plugins"
 }
 
 
 // used by the tests
 module "mock" {
   depends_on = [module.infra]
-  source     = "github.com/gateplane-io/terraform-test-modules.git//gateplane-mock?ref=1.0.0"
+  source     = "github.com/gateplane-io/terraform-test-modules.git//gateplane-mock?ref=1.2.0"
   # source     = "./../../../terraform-test-modules/gateplane-mock"
 
   name            = "mock"
@@ -43,7 +42,7 @@ module "mock" {
 
 module "access" {
   depends_on = [module.infra]
-  source     = "github.com/gateplane-io/terraform-gateplane-policy-gate?ref=1.0.0"
+  source     = "github.com/gateplane-io/terraform-gateplane-policy-gate?ref=1.2.0"
   # source     = "./../../../terraform-gateplane-policy-gate"
 
   name            = "pgate"
