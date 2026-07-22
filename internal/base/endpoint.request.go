@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 
+	"github.com/gateplane-io/vault-plugins/pkg/models"
 	"github.com/gateplane-io/vault-plugins/pkg/responses"
 )
 
@@ -74,10 +75,15 @@ func (b *BaseBackend) handleRequestUpdate(ctx context.Context, req *logical.Requ
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	exists, _ := b.GetRequest(ctx, req, entityID)
-	overwrite := exists != nil
+	existingRequest, err := b.GetRequest(ctx, req, entityID)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
+	}
+	if existingRequest != nil && existingRequest.Status == models.Active {
+		return logical.ErrorResponse("Cannot replace an AccessRequest while its claimed access is active; revoke the active lease first"), logical.ErrPermissionDenied
+	}
+	overwrite := existingRequest != nil
 
-	// IF exists and status: active, Revoke before re-creating
 	config, err := GetConfiguration[*Config](ctx, b, req, ConfigKey)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), nil
