@@ -13,9 +13,7 @@ package policy_gate
 import (
 	"context"
 	"sync"
-	// "fmt"
 
-	// "github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 
 	vault "github.com/hashicorp/vault/api"
@@ -60,6 +58,17 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 	if err != nil {
 		b.Logger().Error("[-] Could not initialize Vault API Configuration")
 		return err
+	}
+	if exists {
+		err = b.EnsureVaultAPI(ctx, req.Storage)
+		if err != nil {
+			b.Logger().Error("[-] Could not initialize Vault API with existing Configuration",
+				"path", ConfigAPIVaultKey,
+				"AppRoleID", config.RoleID,
+				"AppRoleMount", config.AppRoleMount,
+			)
+			return err
+		}
 	}
 
 	b.BaseBackend.ClaimArray = utils.NewCallbackArray(
@@ -112,7 +121,6 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 }
 
 func (b *Backend) EnsureVaultAPI(ctx context.Context, storage logical.Storage) error {
-
 	cfg, err := base.GetConfigurationFromStorage[*clientConfig.ConfigApiVaultAppRole](ctx,
 		b.BaseBackend, storage, ConfigAPIVaultKey,
 	)
@@ -120,12 +128,22 @@ func (b *Backend) EnsureVaultAPI(ctx context.Context, storage logical.Storage) e
 		return err
 	}
 
-	err = clients.EnsureAuthenticationVault(ctx,
+	if b.VaultClient == nil {
+		client, err := clients.NewVaultAppRoleClient(ctx, *cfg, nil)
+		if err != nil {
+			b.Logger().Error("[-] Could not create and authenticate the Vault API client",
+				"error", err,
+			)
+			return err
+		}
+		b.VaultClient = client
+		return nil
+	}
+
+	if err := clients.EnsureAuthenticationVault(ctx,
 		b.VaultClient, cfg.RoleID, cfg.RoleSecret, cfg.AppRoleMount,
-	)
-	if err != nil {
+	); err != nil {
 		b.Logger().Error("[-] Could not ensure authentication to the Vault API",
-			"configuration", cfg,
 			"error", err,
 		)
 		return err
