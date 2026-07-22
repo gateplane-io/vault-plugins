@@ -58,7 +58,8 @@ func PathRequest(b *BaseBackend) *framework.Path {
 
 		The 'justification' parameter can be mandatory if 'require_justification' is set under '/config' endpoint.
 
-		The 'ttl' parameter is the duration that the requested access will be in effect (must be below 'lease_max')
+		The 'ttl' parameter is the duration that the requested access will be in effect
+		and must be between 'lease' and 'lease_max', inclusive.
 		`,
 	}
 }
@@ -70,7 +71,9 @@ func (b *BaseBackend) handleRequestUpdate(ctx context.Context, req *logical.Requ
 	}
 
 	justification := d.Get("justification").(string)
-	ttl := time.Duration(d.Get("ttl").(int))
+	// TypeDurationSecond returns an integer number of seconds. ClaimTTL retains
+	// that representation for API and persisted-storage compatibility.
+	ttlSeconds := time.Duration(d.Get("ttl").(int))
 
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
@@ -100,10 +103,10 @@ func (b *BaseBackend) handleRequestUpdate(ctx context.Context, req *logical.Requ
 		"Justification", justification,
 		"JustificationRequired", config.RequireJustification,
 		"JustificationNoWhitspaceLength", len(strings.TrimSpace(justification)),
-		"ClaimTTL", ttl,
+		"ClaimTTLSeconds", ttlSeconds,
 	)
 
-	accessRequest, err := NewAccessRequest(config, configLease, entityID, ttl, justification)
+	accessRequest, err := NewAccessRequest(config, configLease, entityID, ttlSeconds, justification)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrPermissionDenied
 	}

@@ -28,20 +28,27 @@ type AccessRequest struct {
 	Justification     string `json:"justification"` // provided by the requestor
 	RequiredApprovals int    `json:"required_approvals"`
 
-	ClaimCreatedAt time.Time     `json:"claim_iat"`
-	ClaimTTL       time.Duration `json:"claim_ttl"` // provided by the requestor
+	ClaimCreatedAt time.Time `json:"claim_iat"`
+	// ClaimTTL is stored as a number of seconds for API and storage compatibility.
+	ClaimTTL time.Duration `json:"claim_ttl"`
 
 	Status    models.AccessRequestStatus `json:"status"`
 	Approvals map[string]*Approval       `json:"approvals"`
 }
 
-func NewAccessRequest(config *Config, configLease *ConfigLease, ownerID string, ttl time.Duration, justification string) (*AccessRequest, error) {
-	if ttl == 0 {
-		ttl = configLease.Lease / time.Second
+func NewAccessRequest(config *Config, configLease *ConfigLease, ownerID string, ttlSeconds time.Duration, justification string) (*AccessRequest, error) {
+	leaseSeconds := configLease.Lease / time.Second
+	leaseMaxSeconds := configLease.LeaseMax / time.Second
+
+	if ttlSeconds == 0 {
+		ttlSeconds = leaseSeconds
 	}
 
-	if ttl > configLease.LeaseMax {
-		return nil, fmt.Errorf("The requested TTL (%v) is higher that the maximum lease of the backend (%v)", ttl, configLease.LeaseMax)
+	if ttlSeconds < leaseSeconds {
+		return nil, fmt.Errorf("the requested TTL (%s) is lower than the minimum lease of the backend (%s)", ttlSeconds*time.Second, configLease.Lease)
+	}
+	if ttlSeconds > leaseMaxSeconds {
+		return nil, fmt.Errorf("the requested TTL (%s) is higher than the maximum lease of the backend (%s)", ttlSeconds*time.Second, configLease.LeaseMax)
 	}
 
 	if config.RequireJustification && strings.TrimSpace(justification) == "" {
@@ -61,7 +68,7 @@ func NewAccessRequest(config *Config, configLease *ConfigLease, ownerID string, 
 		Justification:     justification,
 		RequiredApprovals: config.RequiredApprovals,
 
-		ClaimTTL:       ttl,
+		ClaimTTL:       ttlSeconds,
 		ClaimCreatedAt: time.Unix(0, 0),
 
 		Approvals: map[string]*Approval{},
