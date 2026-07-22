@@ -18,7 +18,6 @@ import (
 )
 
 type CallbackArray struct {
-	elements []string
 	onAppend func(context.Context, *logical.Request, string) (map[string]interface{}, error)
 	onRemove func(context.Context, *logical.Request, string, map[string]interface{}) error
 }
@@ -28,33 +27,28 @@ func NewCallbackArray(
 	onRemove func(context.Context, *logical.Request, string, map[string]interface{}) error,
 ) *CallbackArray {
 	return &CallbackArray{
-		elements: []string{},
 		onAppend: onAppend,
 		onRemove: onRemove,
 	}
 }
 
-// Append adds an element to the array and runs the callback
+// Append runs the callback that grants access for an element.
 func (m *CallbackArray) Append(ctx context.Context, req *logical.Request, element string) (map[string]interface{}, error) {
 	if m.onAppend == nil {
 		return nil, fmt.Errorf("No Append Callback defined")
 	}
-	m.elements = append(m.elements, element)
-	return m.onAppend(ctx, req, element) // Run the function when an element is added
+	return m.onAppend(ctx, req, element)
 }
 
-// Remove removes an element from the array and runs the onRemove callback
+// Remove runs the idempotent callback that revokes access for an element.
+// Revocation must not depend on process-local state because Vault may invoke it
+// after a plugin restart or route it to another plugin process.
 func (m *CallbackArray) Remove(ctx context.Context, req *logical.Request, element string, internalData map[string]interface{}) (bool, error) {
 	if m.onRemove == nil {
 		return false, fmt.Errorf("No Remove Callback defined")
 	}
-	// Find the index of the element to remove
-	for i, e := range m.elements {
-		if e == element {
-			// Remove the element by slicing around it
-			m.elements = append(m.elements[:i], m.elements[i+1:]...)
-			return true, m.onRemove(ctx, req, element, internalData) // Run the function when an element is removed
-		}
+	if err := m.onRemove(ctx, req, element, internalData); err != nil {
+		return false, err
 	}
-	return false, nil // Element not found
+	return true, nil
 }
