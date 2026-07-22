@@ -111,10 +111,15 @@ func (b *BaseBackend) handleClaim(ctx context.Context, req *logical.Request, d *
 }
 
 func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	if req.Secret == nil || req.Secret.InternalData == nil {
+		return logical.ErrorResponse("Claim lease has no internal data"), logical.ErrMissingRequiredState
+	}
+	requestorID, ok := req.Secret.InternalData["requestor_id"].(string)
+	if !ok || requestorID == "" {
+		return logical.ErrorResponse("Claim lease has no valid requestor_id"), logical.ErrMissingRequiredState
+	}
 
 	entityID := req.EntityID
-	requestorID := req.Secret.InternalData["requestor_id"].(string)
-
 	b.Logger().Info("[*] Revoke AccessRequest",
 		"RequestorID", requestorID,
 		"EntityID", entityID,
@@ -123,41 +128,47 @@ func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Re
 		"Revoker", req.DisplayName,
 	)
 
+	// The lease's InternalData is the durable source of truth for cleanup. Run
+	// removal even if the mutable AccessRequest record is stale or missing.
+	removed, err := b.ClaimArray.Remove(ctx, req, requestorID, req.Secret.InternalData)
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
+	}
+	if !removed {
+		return logical.ErrorResponse("Claimed access was not removed"), nil
+	}
+
 	accessRequest, err := b.GetRequest(ctx, req, requestorID)
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrNotFound
 	}
-	now := time.Now()
-
-	if accessRequest.Status == models.Active {
-		removed, err := b.ClaimArray.Remove(ctx, req, accessRequest.OwnerID, req.Secret.InternalData)
-		if err != nil {
-			return logical.ErrorResponse(fmt.Sprint(err)), nil
-		}
-		if !removed {
-			return logical.ErrorResponse(fmt.Sprint(err)), nil
-		}
-		accessRequest.Status = models.Revoked
-		/*
-			If the revocation happended by a nameless token
-			and close to the real expiration (2s) we assume that
-			the request is made by Vault/OpenBao core.
-			This sets the request as Expired
-			(Revoked is when it is manually revoked)
-		*/
-		if entityID == "" &&
-			req.DisplayName == "" &&
-			areDatesClose(
-				now,
-				req.Secret.LeaseOptions.ExpirationTime(),
-				time.Second*2) {
-			accessRequest.Status = models.Expired
-		}
-		err = b.StoreRequest(ctx, req, accessRequest)
-		if err != nil {
-			return logical.ErrorResponse(fmt.Sprint(err)), nil
-		}
+	if accessRequest == nil {
+		b.Logger().Warn("[!] AccessRequest missing after claimed access was removed",
+			"RequestorID", requestorID,
+		)
+		return nil, nil
 	}
+
+	accessRequest.Status = models.Revoked
+	/*
+		If the revocation happened by a nameless token
+		and close to the real expiration (2s) we assume that
+		the request is made by Vault/OpenBao core.
+		This sets the request as Expired
+		(Revoked is when it is manually revoked)
+	*/
+	if entityID == "" &&
+		req.DisplayName == "" &&
+		areDatesClose(
+			time.Now(),
+			req.Secret.LeaseOptions.ExpirationTime(),
+			time.Second*2) {
+		accessRequest.Status = models.Expired
+	}
+	if err := b.StoreRequest(ctx, req, accessRequest); err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
+	}
+
 	b.Logger().Info("[+] AccessRequest Revoked",
 		"RequestorID", requestorID,
 		"EntityID", entityID,
@@ -166,6 +177,5 @@ func (b *BaseBackend) handleClaimRevocation(ctx context.Context, req *logical.Re
 		"TTL", req.Secret.TTL,
 	)
 
-	// Empty response
-	return nil, nil //&logical.Response{}
+	return nil, nil
 }

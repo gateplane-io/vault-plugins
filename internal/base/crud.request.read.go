@@ -64,8 +64,10 @@ func (b *BaseBackend) GetRequestFromStorage(ctx context.Context, storage logical
 	}
 
 	requestDirty := false
-	// Set terminal states in case of expiration
-	if (accessRequest.Status != models.Expired &&
+	// Active access is governed by its Vault/OpenBao lease. Request expiry must
+	// not change active state before the lease revocation callback removes access.
+	if (accessRequest.Status != models.Active &&
+		accessRequest.Status != models.Expired &&
 		accessRequest.Status != models.Revoked &&
 		accessRequest.Status != models.Abandoned) && requestHasExpired(accessRequest) {
 		if accessRequest.Status == models.Pending {
@@ -81,7 +83,9 @@ func (b *BaseBackend) GetRequestFromStorage(ctx context.Context, storage logical
 		)
 	}
 
-	if requestIsDeletable(accessRequest) {
+	// Keep active grant state until lease revocation has completed. Once the
+	// request becomes terminal, normal deletion rules apply again.
+	if accessRequest.Status != models.Active && requestIsDeletable(accessRequest) {
 		err := b.DeleteRequestFromStorage(ctx, storage, accessRequest)
 		if err != nil {
 			b.Logger().Error("[-] Failed to Deleted AccessRequest in Storage",
