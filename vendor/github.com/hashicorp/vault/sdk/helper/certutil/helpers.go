@@ -1359,7 +1359,9 @@ func signCertificate(data *CreationBundle, randReader io.Reader) (*ParsedCertBun
 		for _, ext := range data.CSR.Extensions {
 			switch {
 			case ext.Id.Equal(ExtensionBasicConstraintsOID):
-				if data.Params.UseCSRValues {
+				// For now only copy basic constraint extensions for non-ca use-cases,
+				// we don't properly handle max path length constraints otherwise
+				if data.Params.UseCSRValues && !data.Params.IsCA {
 					isCa, _, err := ParseBasicConstraintExtension(ext)
 					if err != nil {
 						return nil, errutil.UserError{Err: fmt.Sprintf("refusing to accept CSR with invalid Basic Constraints extension: %s", err.Error())}
@@ -2030,7 +2032,7 @@ func ParseCertificateToFields(certificate x509.Certificate) (map[string]interfac
 		"province":                  makeCommaSeparatedString(certificate.Subject.Province),
 		"street_address":            makeCommaSeparatedString(certificate.Subject.StreetAddress),
 		"postal_code":               makeCommaSeparatedString(certificate.Subject.PostalCode),
-		"serial_number":             certificate.Subject.SerialNumber,
+		"serial_number":             SerialFromCert(&certificate),
 		"ttl":                       (certificate.NotAfter.Sub(certificate.NotBefore)).String(),
 		"max_path_length":           certificate.MaxPathLen,
 		"permitted_dns_domains":     strings.Join(certificate.PermittedDNSDomains, ","),
@@ -2300,4 +2302,12 @@ func AddDeltaCRLExtension(data *CreationBundle, certTemplate *x509.Certificate) 
 		certTemplate.ExtraExtensions = append(certTemplate.ExtraExtensions, extension)
 	}
 	return nil
+}
+
+func SerialFromCert(cert *x509.Certificate) string {
+	return SerialFromBigInt(cert.SerialNumber)
+}
+
+func SerialFromBigInt(serial *big.Int) string {
+	return strings.TrimSpace(GetHexFormatted(serial.Bytes(), ":"))
 }
