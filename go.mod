@@ -3,7 +3,7 @@ module github.com/gateplane-io/vault-plugins
 go 1.25.0
 
 require (
-	github.com/hashicorp/vault/api v1.21.0
+	github.com/hashicorp/vault/api v1.23.0
 	github.com/hashicorp/vault/sdk v0.23.0
 	github.com/okta/okta-sdk-golang/v5 v5.0.6
 )
