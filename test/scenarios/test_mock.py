@@ -144,6 +144,7 @@ class TestMock:
             VAULT_URLS["mock"]["request"], token=user, method="POST"
         )
         print(request_raw)
+        assert status == 200, request_raw
         assert "pending" == request_raw["data"]["status"]
         time.sleep(1.1)
         # No approval after the Request TTL has passed

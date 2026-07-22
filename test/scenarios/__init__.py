@@ -88,6 +88,15 @@ def configure_plugin(plugin, data, token=VAULT_TOKEN_ROOT, url=None):
     return vault_api_request(url=url, data=data, token=token, method="POST")
 
 
+def revoke_plugin_claim_leases(plugin, token=VAULT_TOKEN_ROOT):
+    return vault_api_request(
+        f"{VAULT_API}/sys/leases/revoke-prefix/{plugin}/claim",
+        data={"sync": True},
+        token=token,
+        method="POST",
+    )
+
+
 def randomword(length=8):
     letters = string.ascii_lowercase + "-_"
     return "".join(random.choice(letters) for i in range(length))
@@ -101,7 +110,7 @@ def approval_scenario(plugin, user_token, gtkpr_tokens):
     status, output = vault_api_request(
         VAULT_URLS[plugin]["request"], token=user_token, method="POST"
     )
-    assert 200 == status
+    assert 200 == status, output
 
     requestor_id = output["data"]["requestor_id"]
 
