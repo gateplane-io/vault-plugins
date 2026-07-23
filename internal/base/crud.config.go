@@ -57,7 +57,6 @@ func StoreConfigurationToStorage[T PluginConfig](ctx context.Context, b *BaseBac
 	if err != nil {
 		b.Logger().Error("[-] Could not marshal configuration to JSON",
 			"path", path,
-			"config", config,
 			"error", err,
 		)
 		return err
@@ -69,8 +68,6 @@ func StoreConfigurationToStorage[T PluginConfig](ctx context.Context, b *BaseBac
 	if err != nil {
 		b.Logger().Error("[-] Could not store configuration to storage",
 			"path", path,
-			"config", config,
-			"configJSON", configJSON,
 			"error", err,
 		)
 		return err
