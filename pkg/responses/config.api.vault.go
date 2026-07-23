@@ -11,8 +11,7 @@
 package responses
 
 type ConfigApiVaultResponse struct {
-	Url           string `json:"url"`
-	RoleID        string `json:"role_id"`
-	AppRoleMount  string `json:"approle_mount"`
-	RoleSecretSet bool   `json:"role_secret_set"`
+	Url         string `json:"url"`
+	TokenSet    bool   `json:"token_set"`
+	TokenPeriod int    `json:"token_period"`
 }

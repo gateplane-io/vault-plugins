@@ -18,13 +18,11 @@ import (
 	"github.com/hashicorp/vault/sdk/logical"
 
 	"github.com/gateplane-io/vault-plugins/internal/base"
-	clients "github.com/gateplane-io/vault-plugins/internal/clients"
+	"github.com/gateplane-io/vault-plugins/internal/clients"
 	clientConfig "github.com/gateplane-io/vault-plugins/internal/clients/config"
-
 	"github.com/gateplane-io/vault-plugins/pkg/responses"
 )
 
-// Path for plugin configuration
 func PathConfigApiVault(b *Backend) *framework.Path {
 	return &framework.Path{
 		Pattern: ConfigAPIVaultKey,
@@ -32,107 +30,93 @@ func PathConfigApiVault(b *Backend) *framework.Path {
 			"url": {
 				Type:        framework.TypeString,
 				Description: "The URL of the Vault/OpenBao instance",
-				Required:    true,
-			},
-			"role_id": {
-				Type:        framework.TypeString,
-				Description: "The AppRole ID to authenticate against",
-				Required:    true,
-			},
-			"role_secret": {
-				Type:        framework.TypeString,
-				Description: "The AppRole Secret to authenticate with",
 				Required:    false,
 			},
-			"approle_mount": {
+			"wrapped_token": {
 				Type:        framework.TypeString,
-				Description: "The Vault Auth Mount for AppRole",
-				Required:    false,
+				Description: "A single-use response-wrapped periodic orphan token",
+				Required:    true,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
 			logical.UpdateOperation: b.handleConfigApiVaultUpdate,
 			logical.ReadOperation:   b.handleConfigApiVaultRead,
 		},
-
 		HelpSynopsis: "Configures access and authentication to Vault/OpenBao API",
-		HelpDescription: `This endpoint sets the Vault/OpenBao endpoints and AppRole configuration
-		needed to assign and remove Policies to Vault/OpenBao Entities.
+		HelpDescription: `This endpoint configures the Vault/OpenBao endpoint and the token used
+			to assign and remove policies from Vault/OpenBao entities.
 
-		'url' configures the Vault/OpenBao network endpoint to be used to contact the API
+			'url' configures the Vault/OpenBao network endpoint. When omitted, the existing URL is retained.
 
-		'role_id' and 'role_secret' configure the AppRole credentials to authenticate to and interact with the API
+			'wrapped_token' must contain a single-use response-wrapped renewable periodic orphan token.
+			The wrapping token is consumed once and is never stored. Only the unwrapped token is persisted
+			in the plugin's encrypted storage and renewed through 'auth/token/renew-self'.
 
-		'approle_mount' configures the mountpoint of the AppRole Auth Method, where the AppRole should authenticate against.
-
-		The provided AppRole must be able to
-		'read' and 'update' the 'identity/entity/id/*',
-		and 'read' the 'auth/token/lookup-self' paths.
-		`,
+			The token must be able to 'read' and 'update' 'identity/entity/id/*', 'read'
+			'auth/token/lookup-self', and 'update' 'auth/token/renew-self'.`,
 	}
 }
 
 func (b *Backend) handleConfigApiVaultUpdate(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	entityID := req.EntityID
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	config, err := base.GetConfiguration[*clientConfig.ConfigApiVaultAppRole](ctx, b.BaseBackend, req, "")
+	config, err := base.GetConfiguration[*clientConfig.ConfigApiVaultPeriodicToken](ctx, b.BaseBackend, req, "")
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	for key := range d.Raw {
-		value, ok := d.GetOk(key)
+	if rawURL, ok := d.GetOk("url"); ok {
+		url, ok := rawURL.(string)
 		if !ok {
-			continue
+			return logical.ErrorResponse("invalid type for 'url', expected string"), logical.ErrInvalidRequest
 		}
-		b.Logger().Info("[*] Replacing configuration value",
-			"EntityID", entityID,
-			"ConfigKey", key,
-			// "OldValue", config
-			"NewValue", value,
-		)
-
-		err := config.SetConfigurationKey(key, value)
-		if err != nil {
-			return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrPermissionDenied
-		}
+		config.Url = url
 	}
 
-	err = base.StoreConfiguration[*clientConfig.ConfigApiVaultAppRole](ctx, b.BaseBackend, req, config, "")
+	rawWrappedToken, ok := d.GetOk("wrapped_token")
+	if !ok {
+		return logical.ErrorResponse("wrapped_token is required"), logical.ErrInvalidRequest
+	}
+	wrappedToken, ok := rawWrappedToken.(string)
+	if !ok || wrappedToken == "" {
+		return logical.ErrorResponse("wrapped_token is required"), logical.ErrInvalidRequest
+	}
+
+	vaultClient, tokenInfo, err := clients.NewVaultWrappedTokenClient(ctx, config.Url, wrappedToken, nil)
 	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrInvalidRequest
+	}
+	config.Token = vaultClient.Token()
+
+	if err := base.StoreConfiguration[*clientConfig.ConfigApiVaultPeriodicToken](ctx, b.BaseBackend, req, config, ""); err != nil {
+		_ = vaultClient.Auth().Token().RevokeSelfWithContext(ctx, config.Token)
+		vaultClient.ClearToken()
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	vaultClient, err := clients.NewVaultAppRoleClient(ctx, *config, nil)
-	if err != nil {
-		return &logical.Response{Warnings: []string{
-			fmt.Sprintf("%s", err),
-		}}, nil
+	if err := b.ReplaceVaultClient(vaultClient, tokenInfo); err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
-	b.VaultClient = vaultClient
 
 	return &logical.Response{}, nil
 }
 
-func (b *Backend) handleConfigApiVaultRead(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+func (b *Backend) handleConfigApiVaultRead(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	b.BaseMutex.Lock()
 	defer b.BaseMutex.Unlock()
 
-	config, err := base.GetConfiguration[*clientConfig.ConfigApiVaultAppRole](ctx, b.BaseBackend, req, "")
+	config, err := base.GetConfiguration[*clientConfig.ConfigApiVaultPeriodicToken](ctx, b.BaseBackend, req, "")
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	responseObj := responses.ConfigApiVaultResponse{
-		Url:           config.Url,
-		RoleID:        config.RoleID,
-		AppRoleMount:  config.AppRoleMount,
-		RoleSecretSet: config.RoleSecret != "",
-	}
-
-	responseData, err := base.StructToMap(responseObj)
+	tokenSet, tokenPeriod := b.VaultTokenStatus()
+	responseData, err := base.StructToMap(responses.ConfigApiVaultResponse{
+		Url:         config.Url,
+		TokenSet:    tokenSet || config.Token != "",
+		TokenPeriod: tokenPeriod,
+	})
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), nil
 	}
