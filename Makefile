@@ -13,7 +13,7 @@ build-plugin:
 
 .PHONY:load-resources
 load-resources:
-	cd test/terraform && terraform init
+	cd test/terraform && terraform init -upgrade
 	cd test/terraform && terraform apply -auto-approve
 
 .PHONY:export-resources
