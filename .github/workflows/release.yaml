@@ -51,60 +51,85 @@ jobs:
           # To not release the 'mock' plugin
           RELEASE: true
 
-      - name: Generate binary hashes
+      - name: Parse GoReleaser checksum file
         id: binary
         env:
           ARTIFACTS: "${{ steps.goreleaser.outputs.artifacts }}"
         run: |
           set -euo pipefail
 
-          checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
-          echo "hashes=$(cat $checksum_file | base64 -w0)" >> "$GITHUB_OUTPUT"
+          checksum_file="$(
+            jq -r '.[] | select(.type == "Checksum") | .path' <<< "$ARTIFACTS"
+          )"
 
+          if [[ -z "$checksum_file" || ! -f "$checksum_file" ]]; then
+            echo "Could not find GoReleaser checksum file" >&2
+            exit 1
+          fi
 
-  binary-provenance:
-    needs: [goreleaser]
-    permissions:
-      actions: read # To read the workflow path.
-      id-token: write # To sign the provenance.
-      contents: write # To add assets to a release.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # f7dd8c54c2067bafc12ca7a55595d5ee9b75204a # v2.1.0
-    with:
-      base64-subjects: "${{ needs.goreleaser.outputs.hashes }}"
-      upload-assets: true # upload to a new release
-      private-repository: true # temporary - until public release
+          echo "checksum-file=$checksum_file" >> "$GITHUB_OUTPUT"
+          echo "hashes=$(base64 -w0 < "$checksum_file")" >> "$GITHUB_OUTPUT"
 
+          echo "Using checksum file: $checksum_file"
+          cat "$checksum_file"
 
-  verification-with-slsa-verifier:
-    needs: [goreleaser, binary-provenance]
+      - name: Generate build provenance attestations
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-checksums: ${{ steps.binary.outputs.checksum-file }}
+
+  verification-with-github-attestations:
+    needs:
+      - goreleaser
+
     runs-on: ubuntu-latest
-    permissions: read-all
-    steps:
-      - name: Install the verifier
-        uses: slsa-framework/slsa-verifier/actions/installer@6657aada084353c65e5dde35394b1a010289fab0 # v2.7.0
 
-      - name: Download assets
+    permissions:
+      contents: read
+      attestations: read
+
+    steps:
+      - name: Download release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PROVENANCE: "${{ needs.binary-provenance.outputs.provenance-name }}"
           FILENAME_PREFIX: gateplane-
         run: |
           set -euo pipefail
-          gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "${FILENAME_PREFIX}*"
-          gh -R "$GITHUB_REPOSITORY" release download "$GITHUB_REF_NAME" -p "$PROVENANCE"
 
-      - name: Verify assets
+          gh \
+            --repo "$GITHUB_REPOSITORY" \
+            release download "$GITHUB_REF_NAME" \
+            --pattern "${FILENAME_PREFIX}*"
+
+      - name: Verify release assets
         env:
           CHECKSUMS: ${{ needs.goreleaser.outputs.hashes }}
-          PROVENANCE: "${{ needs.binary-provenance.outputs.provenance-name }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          checksums=$(echo "$CHECKSUMS" | base64 -d)
-          while read -r line; do
-              fn=$(echo $line | cut -d ' ' -f2)
-              echo "Verifying $fn"
-              slsa-verifier verify-artifact --provenance-path "$PROVENANCE" \
-                                            --source-uri "github.com/$GITHUB_REPOSITORY" \
-                                            --source-tag "$GITHUB_REF_NAME" \
-                                            "$fn"
-          done <<<"$checksums"
+
+          checksums="$(base64 -d <<< "$CHECKSUMS")"
+
+          while read -r digest filename; do
+            [[ -n "$filename" ]] || continue
+
+            echo "Verifying checksum for $filename"
+
+            if [[ ! -f "$filename" ]]; then
+              echo "Release asset not found: $filename" >&2
+              exit 1
+            fi
+
+            actual_digest="$(sha256sum "$filename" | cut -d ' ' -f1)"
+
+            if [[ "$actual_digest" != "$digest" ]]; then
+              echo "Checksum mismatch for $filename" >&2
+              exit 1
+            fi
+
+            echo "Verifying GitHub attestation for $filename"
+
+            gh attestation verify "$filename" \
+              --repo "$GITHUB_REPOSITORY"
+
+          done <<< "$checksums"
