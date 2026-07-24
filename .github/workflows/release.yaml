@@ -20,7 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+      # Required to generate GitHub artifact attestations.
+      id-token: write
       attestations: write
+      artifact-metadata: write
 
     steps:
       - name: Checkout
