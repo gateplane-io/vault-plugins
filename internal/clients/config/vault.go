@@ -10,34 +10,31 @@
 
 package config
 
-import (
-	"fmt"
-)
+import "fmt"
 
-type ConfigApiVaultAppRole struct {
-	Url          string `json:"url"`
-	RoleID       string `json:"role_id"`
-	RoleSecret   string `json:"role_secret"`
-	AppRoleMount string `json:"approle_mount"`
+type ConfigApiVaultPeriodicToken struct {
+	Url   string `json:"url"`
+	Token string `json:"token"`
 }
 
-func NewConfigApiVaultAppRole() ConfigApiVaultAppRole {
-	return ConfigApiVaultAppRole{
-		Url:          "https://localhost:8200",
-		AppRoleMount: "approle",
-	}
+func NewConfigApiVaultPeriodicToken() ConfigApiVaultPeriodicToken {
+	return ConfigApiVaultPeriodicToken{Url: "https://localhost:8200"}
 }
 
-func (c *ConfigApiVaultAppRole) SetConfigurationKey(key string, value interface{}) error {
+func (c *ConfigApiVaultPeriodicToken) SetConfigurationKey(key string, value interface{}) error {
 	switch key {
 	case "url":
-		c.Url = value.(string)
-	case "role_id":
-		c.RoleID = value.(string)
-	case "role_secret":
-		c.RoleSecret = value.(string)
-	case "approle_mount":
-		c.AppRoleMount = value.(string)
+		url, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("invalid type for 'url', expected string")
+		}
+		c.Url = url
+	case "token":
+		token, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("invalid type for 'token', expected string")
+		}
+		c.Token = token
 	default:
 		return fmt.Errorf("unknown configuration key: %s", key)
 	}

@@ -43,6 +43,7 @@ func Backend(c *logical.BackendConfig) *pgate.Backend {
 		BackendType:    logical.TypeLogical,
 		Help:           "[PolicyGate] Vault/OpenBao Plugin for conditional access to Policies",
 		RunningVersion: Version,
+		Clean:          bFinal.CleanupVaultClient,
 		Paths: []*framework.Path{
 			// Provided by Base package
 			base.PathConfig(&baseBackend),

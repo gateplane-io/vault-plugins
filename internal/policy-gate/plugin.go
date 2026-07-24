@@ -12,47 +12,46 @@ package policy_gate
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
+	vault "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/sdk/logical"
 
-	vault "github.com/hashicorp/vault/api"
-
 	"github.com/gateplane-io/vault-plugins/internal/base"
-	clients "github.com/gateplane-io/vault-plugins/internal/clients"
+	"github.com/gateplane-io/vault-plugins/internal/clients"
 	clientConfig "github.com/gateplane-io/vault-plugins/internal/clients/config"
 	"github.com/gateplane-io/vault-plugins/internal/utils"
 )
 
-/* Storage Keys */
 const ConfigAPIVaultKey = "config/api/vault"
 const ConfigAccessKey = "config/access"
 
 type Backend struct {
 	*base.BaseBackend
-	Mutex       sync.Mutex
-	VaultClient *vault.Client
+	Mutex             sync.Mutex
+	VaultClient       *vault.Client
+	vaultTokenWatcher *vault.LifetimeWatcher
+	vaultTokenPeriod  int
 }
 
 func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationRequest) error {
-	b.Mutex.Lock()
-	defer b.Mutex.Unlock()
 	b.Logger().Info("Initializing plugin configuration")
 
-	// Initialize the base
-	err := b.BaseBackend.Initialize(ctx, req)
-	if err != nil {
+	if err := b.BaseBackend.Initialize(ctx, req); err != nil {
 		b.Logger().Error("Could not initialize Plugin Base")
 		return err
 	}
 
 	configAccess := NewConfigAccess()
-	_, err = base.StoreConfigurationToStorageIfNotPresent[*ConfigAccess](ctx,
+	if _, err := base.StoreConfigurationToStorageIfNotPresent[*ConfigAccess](ctx,
 		b.BaseBackend, req.Storage, &configAccess, ConfigAccessKey,
-	)
+	); err != nil {
+		return err
+	}
 
-	config := clientConfig.NewConfigApiVaultAppRole()
-	exists, err := base.StoreConfigurationToStorageIfNotPresent[*clientConfig.ConfigApiVaultAppRole](ctx,
+	config := clientConfig.NewConfigApiVaultPeriodicToken()
+	exists, err := base.StoreConfigurationToStorageIfNotPresent[*clientConfig.ConfigApiVaultPeriodicToken](ctx,
 		b.BaseBackend, req.Storage, &config, ConfigAPIVaultKey,
 	)
 	if err != nil {
@@ -60,22 +59,31 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 		return err
 	}
 	if exists {
-		err = b.EnsureVaultAPI(ctx, req.Storage)
+		storedConfig, err := base.GetConfigurationFromStorage[*clientConfig.ConfigApiVaultPeriodicToken](ctx,
+			b.BaseBackend, req.Storage, ConfigAPIVaultKey,
+		)
 		if err != nil {
-			b.Logger().Error("[-] Could not initialize Vault API with existing Configuration",
-				"path", ConfigAPIVaultKey,
-				"AppRoleID", config.RoleID,
-				"AppRoleMount", config.AppRoleMount,
-			)
 			return err
+		}
+		if storedConfig.Token != "" {
+			if err := b.EnsureVaultAPI(ctx, req.Storage); err != nil {
+				b.Logger().Error("[-] Could not initialize Vault API with existing configuration",
+					"path", ConfigAPIVaultKey,
+					"error", err,
+				)
+				return err
+			}
 		}
 	}
 
 	b.BaseBackend.ClaimArray = utils.NewCallbackArray(
-		(func(ctx context.Context, requ *logical.Request, ownerID string) (map[string]interface{}, error) { // Append
-			err := b.EnsureVaultAPI(ctx, req.Storage)
-			if err != nil {
+		func(ctx context.Context, _ *logical.Request, ownerID string) (map[string]interface{}, error) {
+			if err := b.EnsureVaultAPI(ctx, req.Storage); err != nil {
 				return nil, err
+			}
+			vaultClient := b.currentVaultClient()
+			if vaultClient == nil {
+				return nil, fmt.Errorf("vault API is not configured")
 			}
 
 			cfg, err := base.GetConfigurationFromStorage[*ConfigAccess](ctx,
@@ -85,8 +93,8 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 				return nil, err
 			}
 
-			newPolicies := cfg.Policies //[]string{"test-pgate"} // to be fetched from config
-			existingPolicies, err := AddPoliciesToEntity(ctx, b.VaultClient, ownerID, newPolicies)
+			newPolicies := cfg.Policies
+			existingPolicies, err := AddPoliciesToEntity(ctx, vaultClient, ownerID, newPolicies)
 			if err != nil {
 				return nil, err
 			}
@@ -95,59 +103,129 @@ func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationReq
 				"previous_policies": existingPolicies,
 				"new_policies":      newPolicies,
 			}, nil
-		}),
-		(func(ctx context.Context, requ *logical.Request, ownerID string, internalData map[string]interface{}) error { // Append
-			err := b.EnsureVaultAPI(ctx, req.Storage)
-			if err != nil {
+		},
+		func(ctx context.Context, _ *logical.Request, ownerID string, internalData map[string]interface{}) error {
+			if err := b.EnsureVaultAPI(ctx, req.Storage); err != nil {
 				return err
+			}
+			vaultClient := b.currentVaultClient()
+			if vaultClient == nil {
+				return fmt.Errorf("vault API is not configured")
 			}
 
 			policies := Subtract[string](
 				InterfaceSliceToStringsStrict(internalData["previous_policies"].([]interface{})),
 				InterfaceSliceToStringsStrict(internalData["new_policies"].([]interface{})),
 			)
-			err = SetEntityPolicies(ctx, b.VaultClient, ownerID, policies)
-
-			return err
-		}),
+			return SetEntityPolicies(ctx, vaultClient, ownerID, policies)
+		},
 	)
+
 	b.Logger().Info("GatePlane Policy Gate initialized with default configuration",
 		"path", ConfigAPIVaultKey,
-		"AppRoleID", config.RoleID,
-		"AppRoleMount", config.AppRoleMount,
+		"token_set", b.currentVaultClient() != nil,
 		"already_set", exists,
 	)
 	return nil
 }
 
 func (b *Backend) EnsureVaultAPI(ctx context.Context, storage logical.Storage) error {
-	cfg, err := base.GetConfigurationFromStorage[*clientConfig.ConfigApiVaultAppRole](ctx,
+	b.Mutex.Lock()
+	clientReady := b.VaultClient != nil && b.vaultTokenWatcher != nil
+	client := b.VaultClient
+	b.Mutex.Unlock()
+
+	if clientReady {
+		if _, err := client.Auth().Token().LookupSelfWithContext(ctx); err != nil {
+			return fmt.Errorf("checking configured vault token: %w", err)
+		}
+		return nil
+	}
+
+	config, err := base.GetConfigurationFromStorage[*clientConfig.ConfigApiVaultPeriodicToken](ctx,
 		b.BaseBackend, storage, ConfigAPIVaultKey,
 	)
 	if err != nil {
 		return err
 	}
-
-	if b.VaultClient == nil {
-		client, err := clients.NewVaultAppRoleClient(ctx, *cfg, nil)
-		if err != nil {
-			b.Logger().Error("[-] Could not create and authenticate the Vault API client",
-				"error", err,
-			)
-			return err
-		}
-		b.VaultClient = client
-		return nil
+	if config.Token == "" {
+		return fmt.Errorf("vault API token is not configured")
 	}
 
-	if err := clients.EnsureAuthenticationVault(ctx,
-		b.VaultClient, cfg.RoleID, cfg.RoleSecret, cfg.AppRoleMount,
-	); err != nil {
-		b.Logger().Error("[-] Could not ensure authentication to the Vault API",
-			"error", err,
-		)
+	client, tokenInfo, err := clients.NewVaultPeriodicTokenClient(ctx, config.Url, config.Token, nil)
+	if err != nil {
 		return err
 	}
+	return b.ReplaceVaultClient(client, tokenInfo)
+}
 
+func (b *Backend) ReplaceVaultClient(client *vault.Client, tokenInfo *clients.PeriodicTokenInfo) error {
+	if client == nil {
+		return fmt.Errorf("vault client is nil")
+	}
+	if tokenInfo == nil || tokenInfo.Secret == nil || tokenInfo.PeriodSeconds <= 0 {
+		return fmt.Errorf("periodic token information is invalid")
+	}
+
+	watcher, err := client.NewLifetimeWatcher(&vault.LifetimeWatcherInput{
+		Secret:    tokenInfo.Secret,
+		Increment: tokenInfo.PeriodSeconds,
+	})
+	if err != nil {
+		return fmt.Errorf("creating vault token lifetime watcher: %w", err)
+	}
+
+	b.Mutex.Lock()
+	oldWatcher := b.vaultTokenWatcher
+	b.VaultClient = client
+	b.vaultTokenWatcher = watcher
+	b.vaultTokenPeriod = tokenInfo.PeriodSeconds
+	b.Mutex.Unlock()
+
+	if oldWatcher != nil {
+		oldWatcher.Stop()
+	}
+
+	go b.runVaultTokenWatcher(watcher)
 	return nil
+}
+
+func (b *Backend) runVaultTokenWatcher(watcher *vault.LifetimeWatcher) {
+	watcher.Start()
+	err := <-watcher.DoneCh()
+
+	b.Mutex.Lock()
+	if b.vaultTokenWatcher == watcher {
+		b.vaultTokenWatcher = nil
+	}
+	b.Mutex.Unlock()
+
+	if err != nil {
+		b.Logger().Error("Vault API periodic token renewal stopped", "error", err)
+	}
+}
+
+func (b *Backend) CleanupVaultClient(_ context.Context) {
+	b.Mutex.Lock()
+	watcher := b.vaultTokenWatcher
+	b.vaultTokenWatcher = nil
+	b.VaultClient = nil
+	b.vaultTokenPeriod = 0
+	b.Mutex.Unlock()
+
+	if watcher != nil {
+		watcher.Stop()
+	}
+}
+
+func (b *Backend) VaultTokenStatus() (bool, int) {
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
+	return b.VaultClient != nil, b.vaultTokenPeriod
+}
+
+func (b *Backend) currentVaultClient() *vault.Client {
+	b.Mutex.Lock()
+	defer b.Mutex.Unlock()
+	return b.VaultClient
 }
