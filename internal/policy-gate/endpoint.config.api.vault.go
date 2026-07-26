@@ -99,7 +99,17 @@ func (b *Backend) handleConfigApiVaultUpdate(ctx context.Context, req *logical.R
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	return &logical.Response{}, nil
+	responseData, err := base.StructToMap(responses.ConfigApiVaultResponse{
+		Url:           config.Url,
+		TokenSet:      true,
+		TokenPeriod:   tokenInfo.PeriodSeconds,
+		TokenAccessor: tokenInfo.Accessor,
+	})
+	if err != nil {
+		return logical.ErrorResponse(fmt.Sprint(err)), nil
+	}
+
+	return &logical.Response{Data: responseData}, nil
 }
 
 func (b *Backend) handleConfigApiVaultRead(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
@@ -111,11 +121,12 @@ func (b *Backend) handleConfigApiVaultRead(ctx context.Context, req *logical.Req
 		return logical.ErrorResponse(fmt.Sprint(err)), logical.ErrMissingRequiredState
 	}
 
-	tokenSet, tokenPeriod := b.VaultTokenStatus()
+	tokenSet, tokenPeriod, tokenAccessor := b.VaultTokenStatus()
 	responseData, err := base.StructToMap(responses.ConfigApiVaultResponse{
-		Url:         config.Url,
-		TokenSet:    tokenSet || config.Token != "",
-		TokenPeriod: tokenPeriod,
+		Url:           config.Url,
+		TokenSet:      tokenSet || config.Token != "",
+		TokenPeriod:   tokenPeriod,
+		TokenAccessor: tokenAccessor,
 	})
 	if err != nil {
 		return logical.ErrorResponse(fmt.Sprint(err)), nil

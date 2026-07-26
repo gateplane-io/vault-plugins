@@ -23,6 +23,7 @@ import (
 
 type PeriodicTokenInfo struct {
 	Secret        *api.Secret
+	Accessor      string
 	PeriodSeconds int
 }
 
@@ -156,8 +157,17 @@ func ValidatePeriodicOrphanToken(ctx context.Context, client *api.Client) (*Peri
 		}
 	}
 
+	accessor, err := lookup.TokenAccessor()
+	if err != nil {
+		return nil, fmt.Errorf("parsing token accessor: %w", err)
+	}
+	if strings.TrimSpace(accessor) == "" {
+		return nil, fmt.Errorf("token lookup returned no accessor")
+	}
+
 	periodSeconds := int(period / time.Second)
 	return &PeriodicTokenInfo{
+		Accessor:      accessor,
 		PeriodSeconds: periodSeconds,
 		Secret: &api.Secret{Auth: &api.SecretAuth{
 			ClientToken:   client.Token(),
