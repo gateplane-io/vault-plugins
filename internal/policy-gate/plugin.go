@@ -29,10 +29,11 @@ const ConfigAccessKey = "config/access"
 
 type Backend struct {
 	*base.BaseBackend
-	Mutex             sync.Mutex
-	VaultClient       *vault.Client
-	vaultTokenWatcher *vault.LifetimeWatcher
-	vaultTokenPeriod  int
+	Mutex              sync.Mutex
+	VaultClient        *vault.Client
+	vaultTokenWatcher  *vault.LifetimeWatcher
+	vaultTokenPeriod   int
+	vaultTokenAccessor string
 }
 
 func (b *Backend) Initialize(ctx context.Context, req *logical.InitializationRequest) error {
@@ -180,6 +181,7 @@ func (b *Backend) ReplaceVaultClient(client *vault.Client, tokenInfo *clients.Pe
 	b.VaultClient = client
 	b.vaultTokenWatcher = watcher
 	b.vaultTokenPeriod = tokenInfo.PeriodSeconds
+	b.vaultTokenAccessor = tokenInfo.Accessor
 	b.Mutex.Unlock()
 
 	if oldWatcher != nil {
@@ -211,6 +213,7 @@ func (b *Backend) CleanupVaultClient(_ context.Context) {
 	b.vaultTokenWatcher = nil
 	b.VaultClient = nil
 	b.vaultTokenPeriod = 0
+	b.vaultTokenAccessor = ""
 	b.Mutex.Unlock()
 
 	if watcher != nil {
@@ -218,10 +221,10 @@ func (b *Backend) CleanupVaultClient(_ context.Context) {
 	}
 }
 
-func (b *Backend) VaultTokenStatus() (bool, int) {
+func (b *Backend) VaultTokenStatus() (bool, int, string) {
 	b.Mutex.Lock()
 	defer b.Mutex.Unlock()
-	return b.VaultClient != nil, b.vaultTokenPeriod
+	return b.VaultClient != nil, b.vaultTokenPeriod, b.vaultTokenAccessor
 }
 
 func (b *Backend) currentVaultClient() *vault.Client {

@@ -11,7 +11,8 @@
 package responses
 
 type ConfigApiVaultResponse struct {
-	Url         string `json:"url"`
-	TokenSet    bool   `json:"token_set"`
-	TokenPeriod int    `json:"token_period"`
+	Url           string `json:"url"`
+	TokenSet      bool   `json:"token_set"`
+	TokenPeriod   int    `json:"token_period"`
+	TokenAccessor string `json:"token_accessor"`
 }
