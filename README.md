@@ -122,7 +122,7 @@ for users that access Vault/OpenBao through Okta.
 The plugin reaches the Okta API with API credentials stored in Vault/OpenBao and
 adds the user requesting access to a configured Okta Group for a set time duration.
 
-##### API documentation for each of the plugins is provided [here](https://docs.gateplane.io).
+##### API documentation for each of the plugins is provided [here](https://docs.gateplane.io/plugins/api/).
 
 ##### Documentation on setting up the plugins is provided [below](#-how-to-install).
 
@@ -177,7 +177,7 @@ To register a plugin, it needs to be compiled and located in the Vault/OpenBao p
 
 The latest binaries can be downloaded from the [Github Releases Page](https://github.com/gateplane-io/vault-plugins/releases). As SHA256 checksums are needed by Vault/OpenBao to register plugins, the `checksums.txt` file can also be downloaded for quick reference. Additionally, the plugin version SemVer should be noted, as always provided in the Release description (e.g: `v0.1.0-base0.1.0`).
 
-Finally, the builds can be verified using the [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier) project's `verify-artifact` command.
+Finally, the builds can be verified using the Github CLI' [`gh release verify`](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/verify-release-integrity) command.
 
 #### Registering to Plugin Catalog - Manually
 
@@ -255,7 +255,7 @@ Configuring the Gate manually:
 ```bash
 vault write gateplane/aws-prod-object-writer/config \
     required_approvals=1 \  # additional options can be provided
-    require_reason=true
+    require_justification=true
 ```
 
 ```bash
@@ -263,10 +263,11 @@ vault write gateplane/aws-prod-object-writer/config/access \
     policies=aws-prod-object-writer
 ```
 
+To allow plugins to modify Vault/OpenBao a Periodic Orphan token is needed, as explained in the [documentation](https://docs.gateplane.io/plugins/policy-gate/#show-vaultopenbao-connectivity-configuration-get-configapivault).
 ```bash
 vault write gateplane/aws-prod-object-writer/config/api/vault \
-  approle_id="..."      # Set an approle that can manipulate Entities
-  approle_secret="..."
+    wrapped_token="..." \
+    url="http://127.0.0.1:8200"
 ```
 
 With that, the `/request`, `/approve` and `/claim` endpoints of `gateplane/aws-prod-object-writer` will be usable as in the [Usage Example](#usage-example).
