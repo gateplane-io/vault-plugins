@@ -13,6 +13,7 @@ type ConfigUpdateOptions struct {
 	Spec    swarm.ConfigSpec
 }
 
+// ConfigUpdateResult holds the result of [Client.ConfigUpdate].
 type ConfigUpdateResult struct{}
 
 // ConfigUpdate attempts to update a config
@@ -23,7 +24,7 @@ func (cli *Client) ConfigUpdate(ctx context.Context, id string, options ConfigUp
 	}
 	query := url.Values{}
 	query.Set("version", options.Version.String())
-	resp, err := cli.post(ctx, "/configs/"+id+"/update", query, options.Spec, nil)
+	resp, err := cli.post(ctx, "/configs/"+id+"/update", query, nil, options.Spec)
 	defer ensureReaderClosed(resp)
 	if err != nil {
 		return ConfigUpdateResult{}, err

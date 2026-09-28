@@ -542,6 +542,8 @@ type Backup struct {
 	//   "POSTGRES_16" - The database version is PostgreSQL 16.
 	//   "POSTGRES_17" - The database version is PostgreSQL 17.
 	//   "POSTGRES_18" - The database version is PostgreSQL 18.
+	//   "POSTGRES_19" - The database version is PostgreSQL 19.
+	//   "POSTGRES_20" - The database version is PostgreSQL 20.
 	//   "SQLSERVER_2019_STANDARD" - The database version is SQL Server 2019
 	// Standard.
 	//   "SQLSERVER_2019_ENTERPRISE" - The database version is SQL Server 2019
@@ -680,7 +682,9 @@ type BackupConfiguration struct {
 	Location string `json:"location,omitempty"`
 	// PointInTimeRecoveryEnabled: Whether point in time recovery is enabled.
 	PointInTimeRecoveryEnabled bool `json:"pointInTimeRecoveryEnabled,omitempty"`
-	// ReplicationLogArchivingEnabled: Reserved for future use.
+	// ReplicationLogArchivingEnabled: Optional. Deprecated:
+	// replication_log_archiving_enabled is deprecated and will be removed from a
+	// future version of the API. Use point_in_time_recovery_enabled instead.
 	ReplicationLogArchivingEnabled bool `json:"replicationLogArchivingEnabled,omitempty"`
 	// StartTime: Start time for the daily backup configuration in UTC timezone in
 	// the 24 hour format - `HH:MM`.
@@ -891,6 +895,8 @@ type BackupRun struct {
 	//   "POSTGRES_16" - The database version is PostgreSQL 16.
 	//   "POSTGRES_17" - The database version is PostgreSQL 17.
 	//   "POSTGRES_18" - The database version is PostgreSQL 18.
+	//   "POSTGRES_19" - The database version is PostgreSQL 19.
+	//   "POSTGRES_20" - The database version is PostgreSQL 20.
 	//   "SQLSERVER_2019_STANDARD" - The database version is SQL Server 2019
 	// Standard.
 	//   "SQLSERVER_2019_ENTERPRISE" - The database version is SQL Server 2019
@@ -1080,7 +1086,7 @@ type CloneContext struct {
 	// clone.
 	DestinationInstanceName string `json:"destinationInstanceName,omitempty"`
 	// DestinationNetwork: Optional. The fully qualified URI of the VPC network to
-	// which the cloned instance will be connected via Private Services Access for
+	// which the cloned instance will be connected via private services access for
 	// private IP. For
 	// example:`projects/my-network-project/global/networks/my-network`. This field
 	// is only required for cross-project cloning.
@@ -1196,6 +1202,9 @@ type ConnectSettings struct {
 	//   "SECOND_GEN" - V2 speckle instance.
 	//   "EXTERNAL" - On premises instance.
 	BackendType string `json:"backendType,omitempty"`
+	// ConnectionName: Optional. Output only. Connection name of the Cloud SQL
+	// instance used in connection strings, in the format project:region:instance.
+	ConnectionName string `json:"connectionName,omitempty"`
 	// CustomSubjectAlternativeNames: Custom subject alternative names for the
 	// server certificate.
 	CustomSubjectAlternativeNames []string `json:"customSubjectAlternativeNames,omitempty"`
@@ -1277,6 +1286,8 @@ type ConnectSettings struct {
 	//   "POSTGRES_16" - The database version is PostgreSQL 16.
 	//   "POSTGRES_17" - The database version is PostgreSQL 17.
 	//   "POSTGRES_18" - The database version is PostgreSQL 18.
+	//   "POSTGRES_19" - The database version is PostgreSQL 19.
+	//   "POSTGRES_20" - The database version is PostgreSQL 20.
 	//   "SQLSERVER_2019_STANDARD" - The database version is SQL Server 2019
 	// Standard.
 	//   "SQLSERVER_2019_ENTERPRISE" - The database version is SQL Server 2019
@@ -1541,6 +1552,10 @@ type DatabaseInstance struct {
 	// (https://groups.google.com/d/msg/google-cloud-sql-announce/I_7-F9EBhT0/BtvFtdFeAgAJ)
 	// for details.
 	CurrentDiskSize int64 `json:"currentDiskSize,omitempty,string"`
+	// DatabaseCenterIntegrationEnabled: Optional. If true, instance metadata is
+	// sent to the Database Center. If false, instance metadata is not sent to the
+	// Database Center.
+	DatabaseCenterIntegrationEnabled bool `json:"databaseCenterIntegrationEnabled,omitempty"`
 	// DatabaseInstalledVersion: Output only. Stores the current database version
 	// running on the instance including minor version such as `MYSQL_8_0_18`.
 	DatabaseInstalledVersion string `json:"databaseInstalledVersion,omitempty"`
@@ -1615,6 +1630,8 @@ type DatabaseInstance struct {
 	//   "POSTGRES_16" - The database version is PostgreSQL 16.
 	//   "POSTGRES_17" - The database version is PostgreSQL 17.
 	//   "POSTGRES_18" - The database version is PostgreSQL 18.
+	//   "POSTGRES_19" - The database version is PostgreSQL 19.
+	//   "POSTGRES_20" - The database version is PostgreSQL 20.
 	//   "SQLSERVER_2019_STANDARD" - The database version is SQL Server 2019
 	// Standard.
 	//   "SQLSERVER_2019_ENTERPRISE" - The database version is SQL Server 2019
@@ -1789,6 +1806,7 @@ type DatabaseInstance struct {
 	// example:, causing the database to crash).
 	//   "KMS_KEY_ISSUE" - The KMS key used by the instance is either revoked or
 	// denied access to
+	//   "PROJECT_ABUSE" - The project is suspended due to abuse detected by Ares.
 	SuspensionReason []string `json:"suspensionReason,omitempty"`
 	// SwitchTransactionLogsToCloudStorageEnabled: Input only. Whether Cloud SQL is
 	// enabled to switch storing point-in-time recovery log files from a data disk
@@ -2180,6 +2198,15 @@ type ExecuteSqlPayload struct {
 	// `partial_result` to true if the result exceeds 10 MB or if only a partial
 	// result can be retrieved due to error. Don't throw an error.
 	PartialResultMode string `json:"partialResultMode,omitempty"`
+	// PasswordSecretVersion: Optional. The resource name of the Secret Manager
+	// secret holding the password for the user to log into the database. The
+	// secret should be created using the regional endpoint (for API) or from the
+	// Regional Secrets page (for UI), and stored in the same region as the Cloud
+	// SQL instance. The expected resource name format is
+	// `projects/{project}/locations/{location}/secrets/{secret}/versions/{secret_ve
+	// rsion}`. This field is used together with the `user` field. The secret
+	// resource name will not be stored.
+	PasswordSecretVersion string `json:"passwordSecretVersion,omitempty"`
 	// RowLimit: Optional. The maximum number of rows returned per SQL statement.
 	RowLimit int64 `json:"rowLimit,omitempty,string"`
 	// SqlStatement: Required. SQL statements to run on the database. It can be a
@@ -2640,6 +2667,8 @@ type Flag struct {
 	//   "POSTGRES_16" - The database version is PostgreSQL 16.
 	//   "POSTGRES_17" - The database version is PostgreSQL 17.
 	//   "POSTGRES_18" - The database version is PostgreSQL 18.
+	//   "POSTGRES_19" - The database version is PostgreSQL 19.
+	//   "POSTGRES_20" - The database version is PostgreSQL 20.
 	//   "SQLSERVER_2019_STANDARD" - The database version is SQL Server 2019
 	// Standard.
 	//   "SQLSERVER_2019_ENTERPRISE" - The database version is SQL Server 2019
@@ -4088,6 +4117,9 @@ type OnPremisesConfiguration struct {
 	// ClientKey: PEM representation of the replica's private key. The
 	// corresponding public key is encoded in the client's certificate.
 	ClientKey string `json:"clientKey,omitempty"`
+	// DmsManaged: Output only. Indicates whether the resource is managed by
+	// Database Migration Service.
+	DmsManaged bool `json:"dmsManaged,omitempty"`
 	// DumpFilePath: The dump file to create the Cloud SQL replica.
 	DumpFilePath string `json:"dumpFilePath,omitempty"`
 	// HostPort: The host and port of the on-premises instance in host:port format
@@ -4252,6 +4284,11 @@ type Operation struct {
 	//   "REPAIR_READ_POOL" - Repairs entire read pool or specified read pool nodes
 	// in the read pool.
 	//   "CREATE_READ_POOL" - Creates a Cloud SQL read pool instance.
+	//   "PRE_CHECK_MAJOR_VERSION_UPGRADE" - Pre-checks for major version upgrade.
+	//   "SETUP_MIGRATION" - This operation type represents individual steps in a
+	// multi-step setup migration workflow: including configuration, replication,
+	// switchover/back, and data reseeding, as defined by operation's intent.
+	//   "AGENT_SEND_MESSAGE" - Sends a message to a Cloud SQL agent.
 	OperationType string `json:"operationType,omitempty"`
 	// PreCheckMajorVersionUpgradeContext: The context for pre-check major version
 	// upgrade operation, if applicable. This field is only populated when the
@@ -4518,34 +4555,89 @@ func (s PerformDiskShrinkContext) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(NoMethod(s), s.ForceSendFields, s.NullFields)
 }
 
-// PerformanceCaptureConfig: Performance Capture configuration.
+// PerformanceCaptureConfig: Performance capture configuration.
 type PerformanceCaptureConfig struct {
-	// Enabled: Optional. Enable or disable the Performance Capture.
+	// CpuUtilizationThresholdPercent: Optional. Specifies the minimum percentage
+	// of CPU utilization to trigger the performance capture. Valid integers range
+	// from `10` to `99`. Enter `0` to disable the check.
+	CpuUtilizationThresholdPercent int64 `json:"cpuUtilizationThresholdPercent,omitempty"`
+	// Enabled: Optional. Enables or disables the performance capture feature.
 	Enabled bool `json:"enabled,omitempty"`
-	// ProbeThreshold: Optional. The minimum number of consecutive readings above
-	// threshold that triggers instance state capture.
+	// HistoryListLengthThresholdCount: Optional. Specifies the minimum number of
+	// undo log entries in the history list length to trigger the performance
+	// capture. Valid integers range from `10000` to `10000000`. Enter `0` to
+	// disable the check.
+	HistoryListLengthThresholdCount int64 `json:"historyListLengthThresholdCount,omitempty"`
+	// MemoryUsageThresholdPercent: Optional. Specifies the minimum percentage of
+	// memory usage to trigger the performance capture. Valid integers range from
+	// `10` to `99`. Enter `0` to disable the check.
+	MemoryUsageThresholdPercent int64 `json:"memoryUsageThresholdPercent,omitempty"`
+	// ProbeThreshold: Optional. Specifies the minimum number of consecutive probe
+	// threshold that triggers performance capture.
 	ProbeThreshold int64 `json:"probeThreshold,omitempty"`
-	// ProbingIntervalSeconds: Optional. The time interval in seconds between any
-	// two probes.
+	// ProbingIntervalSeconds: Optional. Specifies the interval in seconds between
+	// consecutive probes that check if any trigger condition thresholds have been
+	// reached.
 	ProbingIntervalSeconds int64 `json:"probingIntervalSeconds,omitempty"`
-	// RunningThreadsThreshold: Optional. The minimum number of server threads
-	// running to trigger the capture on primary.
+	// RunningThreadsThreshold: Optional. Specifies the minimum number of MySQL
+	// `Threads_running` to trigger the performance capture on the primary
+	// instance.
 	RunningThreadsThreshold int64 `json:"runningThreadsThreshold,omitempty"`
-	// SecondsBehindSourceThreshold: Optional. The minimum number of seconds
-	// replica must be lagging behind primary to trigger capture on replica.
+	// SecondsBehindSourceThreshold: Optional. Specifies the minimum number of
+	// seconds replica must be lagging behind primary instance to trigger the
+	// performance capture on replica.
 	SecondsBehindSourceThreshold int64 `json:"secondsBehindSourceThreshold,omitempty"`
-	// TransactionDurationThreshold: Optional. The amount of time in seconds that a
-	// transaction needs to have been open before the watcher starts recording it.
+	// SemaphoreWaitThresholdCount: Optional. Specifies the minimum allowed number
+	// of semaphore waits to trigger the performance capture. Valid integers range
+	// from `10` to `10000`. Enter `0` to disable the check.
+	SemaphoreWaitThresholdCount int64 `json:"semaphoreWaitThresholdCount,omitempty"`
+	// TransactionDurationThreshold: Optional. Specifies the amount of time in
+	// seconds that a transaction needs to have been open before the watcher starts
+	// recording it.
 	TransactionDurationThreshold int64 `json:"transactionDurationThreshold,omitempty"`
-	// ForceSendFields is a list of field names (e.g. "Enabled") to unconditionally
-	// include in API requests. By default, fields with empty or default values are
-	// omitted from API requests. See
+	// TransactionKillExcludedUserHosts: Optional. Specifies a customer-defined
+	// list of users to exclude from transaction termination. Entries can be in the
+	// format 'user@host' or just 'user'. A standalone 'user' implies 'user@%',
+	// excluding the user from any host. Wildcard '%' is allowed in the host part
+	// of the 'user@host' format. Example: `["app_user", "db_admin@10.1.2.3",
+	// "report_user@%"]`
+	TransactionKillExcludedUserHosts []string `json:"transactionKillExcludedUserHosts,omitempty"`
+	// TransactionKillThresholdSeconds: Optional. Specifies the amount of time in
+	// seconds that a transaction needs to have been open before the watcher starts
+	// terminating it. Valid integers range from `60` to `604800` (7 days). Enter
+	// `0` to disable. If enabled (i.e., > 0), this value must be greater than or
+	// equal to `transaction_duration_threshold`. Configurations where `0 <
+	// transaction_kill_threshold_seconds < transaction_duration_threshold` will be
+	// rejected.
+	TransactionKillThresholdSeconds int64 `json:"transactionKillThresholdSeconds,omitempty"`
+	// TransactionKillType: Optional. Determines which transactions are allowed to
+	// be terminated when they exceed `transaction_kill_threshold_seconds`. This
+	// allows protecting write-heavy transactions from auto-termination if desired.
+	// Defaults to `READ_ONLY_TRANSACTIONS` if unspecified.
+	//
+	// Possible values:
+	//   "TRANSACTION_KILL_TYPE_UNSPECIFIED" - Unspecified.
+	//   "READ_ONLY_TRANSACTIONS" - Only read-only transactions are eligible for
+	// termination.
+	//   "ALL_TRANSACTIONS" - All transactions are eligible for termination,
+	// including those with write operations (such as INSERT, UPDATE, DELETE, or
+	// DDL).
+	TransactionKillType string `json:"transactionKillType,omitempty"`
+	// TransactionLockWaitThresholdCount: Optional. Specifies the minimum allowed
+	// number of transactions in lock wait state to trigger the performance
+	// capture. Valid integers range from `10` to `10000`. Enter `0` to disable the
+	// check.
+	TransactionLockWaitThresholdCount int64 `json:"transactionLockWaitThresholdCount,omitempty"`
+	// ForceSendFields is a list of field names (e.g.
+	// "CpuUtilizationThresholdPercent") to unconditionally include in API
+	// requests. By default, fields with empty or default values are omitted from
+	// API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-ForceSendFields for more
 	// details.
 	ForceSendFields []string `json:"-"`
-	// NullFields is a list of field names (e.g. "Enabled") to include in API
-	// requests with the JSON null value. By default, fields with empty values are
-	// omitted from API requests. See
+	// NullFields is a list of field names (e.g. "CpuUtilizationThresholdPercent")
+	// to include in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. See
 	// https://pkg.go.dev/google.golang.org/api#hdr-NullFields for more details.
 	NullFields []string `json:"-"`
 }
@@ -4749,6 +4841,8 @@ type PreCheckMajorVersionUpgradeContext struct {
 	//   "POSTGRES_16" - The database version is PostgreSQL 16.
 	//   "POSTGRES_17" - The database version is PostgreSQL 17.
 	//   "POSTGRES_18" - The database version is PostgreSQL 18.
+	//   "POSTGRES_19" - The database version is PostgreSQL 19.
+	//   "POSTGRES_20" - The database version is PostgreSQL 20.
 	//   "SQLSERVER_2019_STANDARD" - The database version is SQL Server 2019
 	// Standard.
 	//   "SQLSERVER_2019_ENTERPRISE" - The database version is SQL Server 2019
@@ -4839,10 +4933,41 @@ type PscAutoConnectionConfig struct {
 	// project of this consumer endpoint. Optional. This is only applicable if
 	// consumer_network is a shared vpc network.
 	ConsumerProject string `json:"consumerProject,omitempty"`
+	// InstanceAutoDnsStatus: Output only. The status of automated DNS
+	// provisioning.
+	//
+	// Possible values:
+	//   "AUTO_DNS_STATUS_UNSPECIFIED" - Unspecified status. This means status is
+	// missing from dependency service.
+	//   "AUTO_DNS_OK" - DNS provisioning is OK.
+	//   "AUTO_DNS_FAILED" - DNS provisioning failed.
+	//   "AUTO_DNS_UNKNOWN" - DNS provisioning status is not recognized by Cloud
+	// SQL.
+	InstanceAutoDnsStatus string `json:"instanceAutoDnsStatus,omitempty"`
 	// IpAddress: The IP address of the consumer endpoint.
 	IpAddress string `json:"ipAddress,omitempty"`
+	// ServiceConnectionPolicy: Output only. The service connection policy created
+	// automatically for the consumer network when
+	// `psc_auto_connection_policy_enabled` is true. It is in the format of:
+	// `projects/{project}/regions/{region}/serviceConnectionPolicies/{policy_id}`
+	// The `policy_id` is in format of `$NETWORK-$RANDOM`.
+	ServiceConnectionPolicy string `json:"serviceConnectionPolicy,omitempty"`
+	// ServiceConnectionPolicyCreationResult: Output only. The status of service
+	// connection policy creation.
+	ServiceConnectionPolicyCreationResult string `json:"serviceConnectionPolicyCreationResult,omitempty"`
 	// Status: The connection status of the consumer endpoint.
 	Status string `json:"status,omitempty"`
+	// WriteEndpointAutoDnsStatus: Output only. The status of automated DNS
+	// provisioning for the write endpoint.
+	//
+	// Possible values:
+	//   "AUTO_DNS_STATUS_UNSPECIFIED" - Unspecified status. This means status is
+	// missing from dependency service.
+	//   "AUTO_DNS_OK" - DNS provisioning is OK.
+	//   "AUTO_DNS_FAILED" - DNS provisioning failed.
+	//   "AUTO_DNS_UNKNOWN" - DNS provisioning status is not recognized by Cloud
+	// SQL.
+	WriteEndpointAutoDnsStatus string `json:"writeEndpointAutoDnsStatus,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "ConsumerNetwork") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -4874,12 +4999,29 @@ type PscConfig struct {
 	// authorized to connect via PSC interface. format:
 	// projects/PROJECT/regions/REGION/networkAttachments/ID
 	NetworkAttachmentUri string `json:"networkAttachmentUri,omitempty"`
+	// PscAutoConnectionPolicyEnabled: Optional. Whether to set up the PSC service
+	// connection policy automatically.
+	PscAutoConnectionPolicyEnabled bool `json:"pscAutoConnectionPolicyEnabled,omitempty"`
 	// PscAutoConnections: Optional. The list of settings for requested Private
 	// Service Connect consumer endpoints that can be used to connect to this Cloud
 	// SQL instance.
 	PscAutoConnections []*PscAutoConnectionConfig `json:"pscAutoConnections,omitempty"`
+	// PscAutoDnsEnabled: Optional. Indicates whether Private Service Connect DNS
+	// automation is enabled for this instance. When enabled, Cloud SQL provisions
+	// a universal DNS record across all networks configured with Private Service
+	// Connect auto-connections. This will default to true for new instances when
+	// Private Service Connect is enabled.
+	PscAutoDnsEnabled bool `json:"pscAutoDnsEnabled,omitempty"`
 	// PscEnabled: Whether PSC connectivity is enabled for this instance.
 	PscEnabled bool `json:"pscEnabled,omitempty"`
+	// PscWriteEndpointDnsEnabled: Optional. Indicates whether Private Service
+	// Connect write endpoint DNS automation is enabled for this instance. When
+	// enabled, Cloud SQL provisions a universal global DNS record across all
+	// networks configured with Private Service Connect auto-connections that
+	// points to the cluster primary instance. This feature is only supported for
+	// Enterprise Plus edition. This will default to true for new enterprise plus
+	// instances when `psc_auto_dns_enabled` is enabled.
+	PscWriteEndpointDnsEnabled bool `json:"pscWriteEndpointDnsEnabled,omitempty"`
 	// ForceSendFields is a list of field names (e.g. "AllowedConsumerProjects") to
 	// unconditionally include in API requests. By default, fields with empty or
 	// default values are omitted from API requests. See
@@ -5354,12 +5496,13 @@ type Settings struct {
 	DeletionProtectionEnabled bool `json:"deletionProtectionEnabled,omitempty"`
 	// DenyMaintenancePeriods: Deny maintenance periods
 	DenyMaintenancePeriods []*DenyMaintenancePeriod `json:"denyMaintenancePeriods,omitempty"`
-	// Edition: Optional. The edition of the instance.
+	// Edition: Optional. The edition type of the Cloud SQL instance.
 	//
 	// Possible values:
 	//   "EDITION_UNSPECIFIED" - The instance did not specify the edition.
 	//   "ENTERPRISE" - The instance is an enterprise edition.
 	//   "ENTERPRISE_PLUS" - The instance is an Enterprise Plus edition.
+	//   "DEVELOPER" - This instance is a Cloud SQL developer edition instance.
 	Edition string `json:"edition,omitempty"`
 	// EnableDataplexIntegration: Optional. By default, Cloud SQL instances have
 	// schema extraction disabled for Dataplex. When this parameter is set to true,
@@ -6626,7 +6769,9 @@ type User struct {
 	// Project: The project ID of the project containing the Cloud SQL database.
 	// The Google apps domain is prefixed if applicable. Can be omitted for
 	// *update* because it is already specified on the URL.
-	Project              string                `json:"project,omitempty"`
+	Project string `json:"project,omitempty"`
+	// ServerRoles: Optional. The server roles for the SQL Server login.
+	ServerRoles          []string              `json:"serverRoles,omitempty"`
 	SqlserverUserDetails *SqlServerUserDetails `json:"sqlserverUserDetails,omitempty"`
 	// Type: The user type. It determines the method to authenticate the user
 	// during login. The default is the database's built-in user type.
@@ -6640,6 +6785,8 @@ type User struct {
 	// Cloud IAM group.
 	//   "CLOUD_IAM_GROUP_SERVICE_ACCOUNT" - Read-only. Login for a service account
 	// that belongs to the Cloud IAM group.
+	//   "CLOUD_IAM_WORKFORCE_IDENTITY" - Cloud IAM workforce identity user managed
+	// via workforce identity federation.
 	//   "ENTRAID_USER" - Microsoft Entra ID user.
 	Type string `json:"type,omitempty"`
 
@@ -8050,6 +8197,121 @@ func (c *ConnectGetCall) Do(opts ...googleapi.CallOption) (*ConnectSettings, err
 		return nil, err
 	}
 	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "sql.connect.get", "response", internallog.HTTPResponse(res, b))
+	return ret, nil
+}
+
+type ConnectResolveCall struct {
+	s            *Service
+	location     string
+	dnsName      string
+	urlParams_   gensupport.URLParams
+	ifNoneMatch_ string
+	ctx_         context.Context
+	header_      http.Header
+}
+
+// Resolve: Retrieves connect settings about a Cloud SQL instance using the
+// instance DNS name.
+//
+// - dnsName: Cloud SQL instance ID. This does not include the project ID.
+// - location: The region of the instance.
+func (r *ConnectService) Resolve(location string, dnsName string) *ConnectResolveCall {
+	c := &ConnectResolveCall{s: r.s, urlParams_: make(gensupport.URLParams)}
+	c.location = location
+	c.dnsName = dnsName
+	return c
+}
+
+// Fields allows partial responses to be retrieved. See
+// https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
+// details.
+func (c *ConnectResolveCall) Fields(s ...googleapi.Field) *ConnectResolveCall {
+	c.urlParams_.Set("fields", googleapi.CombineFields(s))
+	return c
+}
+
+// IfNoneMatch sets an optional parameter which makes the operation fail if the
+// object's ETag matches the given value. This is useful for getting updates
+// only after the object has changed since the last request.
+func (c *ConnectResolveCall) IfNoneMatch(entityTag string) *ConnectResolveCall {
+	c.ifNoneMatch_ = entityTag
+	return c
+}
+
+// Context sets the context to be used in this call's Do method.
+func (c *ConnectResolveCall) Context(ctx context.Context) *ConnectResolveCall {
+	c.ctx_ = ctx
+	return c
+}
+
+// Header returns a http.Header that can be modified by the caller to add
+// headers to the request.
+func (c *ConnectResolveCall) Header() http.Header {
+	if c.header_ == nil {
+		c.header_ = make(http.Header)
+	}
+	return c.header_
+}
+
+func (c *ConnectResolveCall) doRequest(alt string) (*http.Response, error) {
+	reqHeaders := gensupport.SetHeaders(c.s.userAgent(), "", c.header_)
+	if c.ifNoneMatch_ != "" {
+		reqHeaders.Set("If-None-Match", c.ifNoneMatch_)
+	}
+	c.urlParams_.Set("alt", alt)
+	c.urlParams_.Set("prettyPrint", "false")
+	urls := googleapi.ResolveRelative(c.s.BasePath, "sql/v1beta4/locations/{location}/dns/{dnsName}:resolveConnectSettings")
+	urls += "?" + c.urlParams_.Encode()
+	req, err := http.NewRequest("GET", urls, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header = reqHeaders
+	googleapi.Expand(req.URL, map[string]string{
+		"location": c.location,
+		"dnsName":  c.dnsName,
+	})
+	c.s.logger.DebugContext(c.ctx_, "api request", "serviceName", apiName, "rpcName", "sql.connect.resolve", "request", internallog.HTTPRequest(req, nil))
+	return gensupport.SendRequest(c.ctx_, c.s.client, req)
+}
+
+// Do executes the "sql.connect.resolve" call.
+// Any non-2xx status code is an error. Response headers are in either
+// *ConnectSettings.ServerResponse.Header or (if a response was returned at
+// all) in error.(*googleapi.Error).Header. Use googleapi.IsNotModified to
+// check whether the returned error was because http.StatusNotModified was
+// returned.
+func (c *ConnectResolveCall) Do(opts ...googleapi.CallOption) (*ConnectSettings, error) {
+	gensupport.SetOptions(c.urlParams_, opts...)
+	res, err := c.doRequest("json")
+	if res != nil && res.StatusCode == http.StatusNotModified {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+		return nil, gensupport.WrapError(&googleapi.Error{
+			Code:   res.StatusCode,
+			Header: res.Header,
+		})
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer googleapi.CloseBody(res)
+	if err := googleapi.CheckResponse(res); err != nil {
+		return nil, gensupport.WrapError(err)
+	}
+	ret := &ConnectSettings{
+		ServerResponse: googleapi.ServerResponse{
+			Header:         res.Header,
+			HTTPStatusCode: res.StatusCode,
+		},
+	}
+	target := &ret
+	b, err := gensupport.DecodeResponseBytes(target, res)
+	if err != nil {
+		return nil, err
+	}
+	c.s.logger.DebugContext(c.ctx_, "api response", "serviceName", apiName, "rpcName", "sql.connect.resolve", "response", internallog.HTTPResponse(res, b))
 	return ret, nil
 }
 
@@ -9748,7 +10010,7 @@ type InstancesCloneCall struct {
 //
 //   - instance: The ID of the Cloud SQL instance to be cloned (source). This
 //     does not include the project ID.
-//   - project: Project ID of the source as well as the clone Cloud SQL instance.
+//   - project: Project ID of the source Cloud SQL instance.
 func (r *InstancesService) Clone(project string, instance string, instancesclonerequest *InstancesCloneRequest) *InstancesCloneCall {
 	c := &InstancesCloneCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
@@ -11144,6 +11406,22 @@ func (r *InstancesService) Patch(project string, instance string, databaseinstan
 	c.project = project
 	c.instance = instance
 	c.databaseinstance = databaseinstance
+	return c
+}
+
+// ReconcilePscNetworking sets the optional parameter "reconcilePscNetworking":
+// Set PSC config to the same value as the existing config to reconcile the PSC
+// networking.
+func (c *InstancesPatchCall) ReconcilePscNetworking(reconcilePscNetworking bool) *InstancesPatchCall {
+	c.urlParams_.Set("reconcilePscNetworking", fmt.Sprint(reconcilePscNetworking))
+	return c
+}
+
+// ReconcilePscNetworkingForce sets the optional parameter
+// "reconcilePscNetworkingForce": Set PSC config to the same value as the
+// existing config and force reconcile the PSC networking.
+func (c *InstancesPatchCall) ReconcilePscNetworkingForce(reconcilePscNetworkingForce bool) *InstancesPatchCall {
+	c.urlParams_.Set("reconcilePscNetworkingForce", fmt.Sprint(reconcilePscNetworkingForce))
 	return c
 }
 
@@ -12759,6 +13037,13 @@ func (r *OperationsService) Cancel(project string, operation string) *Operations
 	return c
 }
 
+// Location sets the optional parameter "location": Region of the Cloud SQL
+// instance.
+func (c *OperationsCancelCall) Location(location string) *OperationsCancelCall {
+	c.urlParams_.Set("location", location)
+	return c
+}
+
 // Fields allows partial responses to be retrieved. See
 // https://developers.google.com/gdata/docs/2.0/basics#PartialResponse for more
 // details.
@@ -12858,6 +13143,13 @@ func (r *OperationsService) Get(project string, operation string) *OperationsGet
 	c := &OperationsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.project = project
 	c.operation = operation
+	return c
+}
+
+// Location sets the optional parameter "location": Region of the Cloud SQL
+// instance.
+func (c *OperationsGetCall) Location(location string) *OperationsGetCall {
+	c.urlParams_.Set("location", location)
 	return c
 }
 
@@ -12976,6 +13268,13 @@ func (r *OperationsService) List(project string) *OperationsListCall {
 // does not include the project ID.
 func (c *OperationsListCall) Instance(instance string) *OperationsListCall {
 	c.urlParams_.Set("instance", instance)
+	return c
+}
+
+// Location sets the optional parameter "location": Region of the Cloud SQL
+// instance.
+func (c *OperationsListCall) Location(location string) *OperationsListCall {
+	c.urlParams_.Set("location", location)
 	return c
 }
 
@@ -15055,6 +15354,25 @@ func (c *UsersUpdateCall) Name(name string) *UsersUpdateCall {
 // `database_roles` are added to the user's existing roles.
 func (c *UsersUpdateCall) RevokeExistingRoles(revokeExistingRoles bool) *UsersUpdateCall {
 	c.urlParams_.Set("revokeExistingRoles", fmt.Sprint(revokeExistingRoles))
+	return c
+}
+
+// RevokeExistingServerRoles sets the optional parameter
+// "revokeExistingServerRoles": Specifies whether to revoke existing roles that
+// are not present in the `server_roles` field. If `false` or unset, the server
+// roles specified in `server_roles` are added to the user's existing server
+// roles.
+func (c *UsersUpdateCall) RevokeExistingServerRoles(revokeExistingServerRoles bool) *UsersUpdateCall {
+	c.urlParams_.Set("revokeExistingServerRoles", fmt.Sprint(revokeExistingServerRoles))
+	return c
+}
+
+// ServerRoles sets the optional parameter "serverRoles": The server roles to
+// grant to the SQL Server login. Existing server roles will not be revoked if
+// revoke_existing_roles is false. body.server_roles will be ignored for update
+// request.
+func (c *UsersUpdateCall) ServerRoles(serverRoles ...string) *UsersUpdateCall {
+	c.urlParams_.SetMulti("serverRoles", append([]string{}, serverRoles...))
 	return c
 }
 

@@ -39,14 +39,14 @@ func (cli *Client) ImageImport(ctx context.Context, source ImageImportSource, re
 		query.Set("message", options.Message)
 	}
 	if p := formatPlatform(options.Platform); p != "unknown" {
-		// TODO(thaJeztah): would we ever support mutiple platforms here? (would require multiple rootfs tars as well?)
+		// TODO(thaJeztah): would we ever support multiple platforms here? (would require multiple rootfs tars as well?)
 		query.Set("platform", p)
 	}
 	for _, change := range options.Changes {
 		query.Add("changes", change)
 	}
 
-	resp, err := cli.postRaw(ctx, "/images/create", query, source.Source, nil)
+	resp, err := cli.postRaw(ctx, "/images/create", query, nil, source.Source)
 	if err != nil {
 		return nil, err
 	}

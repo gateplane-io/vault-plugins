@@ -13,6 +13,7 @@ type SecretUpdateOptions struct {
 	Spec    swarm.SecretSpec
 }
 
+// SecretUpdateResult holds the result of [Client.SecretUpdate].
 type SecretUpdateResult struct{}
 
 // SecretUpdate attempts to update a secret.
@@ -23,7 +24,7 @@ func (cli *Client) SecretUpdate(ctx context.Context, id string, options SecretUp
 	}
 	query := url.Values{}
 	query.Set("version", options.Version.String())
-	resp, err := cli.post(ctx, "/secrets/"+id+"/update", query, options.Spec, nil)
+	resp, err := cli.post(ctx, "/secrets/"+id+"/update", query, nil, options.Spec)
 	defer ensureReaderClosed(resp)
 	if err != nil {
 		return SecretUpdateResult{}, err
