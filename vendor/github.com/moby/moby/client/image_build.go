@@ -23,7 +23,7 @@ func (cli *Client) ImageBuild(ctx context.Context, buildContext io.Reader, optio
 		return ImageBuildResult{}, err
 	}
 
-	buf, err := json.Marshal(options.AuthConfigs)
+	buf, err := json.Marshal(options.AuthConfigs) // #nosec G117 -- ignore "Marshaled struct field "Password" (JSON key "password") matches secret pattern"
 	if err != nil {
 		return ImageBuildResult{}, err
 	}
@@ -32,7 +32,7 @@ func (cli *Client) ImageBuild(ctx context.Context, buildContext io.Reader, optio
 	headers.Add("X-Registry-Config", base64.URLEncoding.EncodeToString(buf))
 	headers.Set("Content-Type", "application/x-tar")
 
-	resp, err := cli.postRaw(ctx, "/build", query, buildContext, headers)
+	resp, err := cli.postRaw(ctx, "/build", query, headers, buildContext)
 	if err != nil {
 		return ImageBuildResult{}, err
 	}

@@ -1,10 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2019, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package wrapping
 
 import (
 	"errors"
+
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 )
 
@@ -106,7 +107,7 @@ func WithConfigMap(with map[string]string) Option {
 	}
 }
 
-// WithIV provides
+// WithIV provides a 12-byte initialization vector for an operation
 func WithIV(with []byte) Option {
 	return func() interface{} {
 		return OptionFunc(func(o *Options) error {
@@ -151,6 +152,26 @@ func WithoutHMAC() Option {
 	return func() interface{} {
 		return OptionFunc(func(o *Options) error {
 			o.WithoutHmac = true
+			return nil
+		})
+	}
+}
+
+// WithoutEnvelope requests a 'raw' encryption, rather than an envelope encryption
+func WithoutEnvelope(rawEncryption bool) Option {
+	return func() interface{} {
+		return OptionFunc(func(o *Options) error {
+			o.WithoutEnvelope = rawEncryption
+			return nil
+		})
+	}
+}
+
+// WithRSAEncryptionPadding specifies the RSA encryption algorithm (padding scheme + hash) to use
+func WithRsaEncryptionPadding(alg RSAEncryptionPadding) Option {
+	return func() interface{} {
+		return OptionFunc(func(o *Options) error {
+			o.WithRsaEncryptionPadding = alg
 			return nil
 		})
 	}

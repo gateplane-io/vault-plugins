@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2019, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 package wrapping
@@ -82,6 +82,9 @@ func EnvelopeDecrypt(data *EnvelopeInfo, opt ...Option) ([]byte, error) {
 		return nil, err
 	}
 
+	if len(data.Iv) != 12 {
+		return nil, fmt.Errorf("invalid IV: expected 12 bytes, got %d", len(data.Iv))
+	}
 	return aead.Open(nil, data.Iv, data.Ciphertext, opts.WithAad)
 }
 
